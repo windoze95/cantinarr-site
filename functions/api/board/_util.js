@@ -151,12 +151,16 @@ export function notifyNewSubmission(context, env, title, detail) {
     click: 'https://cantinarr.com/roadmap/admin.html',
     tags: ['bulb'],
   };
-  // Only observable via `wrangler pages deployment tail`; failures stay silent
-  // for the submitter.
+  // Anonymous ntfy.sh publishing is rate-limited per source IP, and Cloudflare's
+  // shared egress IPs exhaust that quota — an account token (NTFY_TOKEN) is
+  // required for reliable delivery. Only observable via
+  // `wrangler pages deployment tail`; failures stay silent for the submitter.
+  const headers = { 'content-type': 'application/json' };
+  if (env.NTFY_TOKEN) headers.authorization = `Bearer ${env.NTFY_TOKEN}`;
   context.waitUntil(
     fetch(env.NTFY_URL || 'https://ntfy.sh', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     })
       .then(async (r) => {
