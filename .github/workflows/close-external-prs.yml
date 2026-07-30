@@ -1,0 +1,26 @@
+name: Close external pull requests
+
+# The site doesn't accept external PRs. Site problems belong on the issue
+# tracker; Cantinarr feature ideas belong on cantinarr.com/roadmap/.
+# Maintainer and collaborator PRs are unaffected. No PR code is checked out.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    if: ${{ !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+            "Thanks for the interest! This site doesn't accept external pull requests. If something on cantinarr.com is broken, please open an issue here — and Cantinarr feature ideas belong on the [public roadmap](https://cantinarr.com/roadmap/), where anyone can post and vote with no account. Closing this automatically."
+          gh pr close "$PR" --repo "$GITHUB_REPOSITORY"
