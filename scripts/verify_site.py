@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
-EXPECTED_TOP_LEVEL = {"404.html", "_headers", "index.html", "site.css", "static"}
+EXPECTED_TOP_LEVEL = {"404.html", "_headers", "index.html", "roadmap", "site.css", "static"}
 REQUIRED_INDEX_META = {
     "description",
     "og:description",
@@ -163,7 +163,7 @@ def verify() -> list[str]:
             fail(errors, f"public/ must not contain symlinks: {path.relative_to(ROOT)}")
 
     documents: dict[Path, SiteHTMLParser] = {}
-    for html_path in sorted(PUBLIC.glob("*.html")):
+    for html_path in sorted(PUBLIC.rglob("*.html")):
         text = html_path.read_text(encoding="utf-8")
         parser = SiteHTMLParser(html_path)
         parser.feed(text)
@@ -215,6 +215,14 @@ def verify() -> list[str]:
     not_found = documents.get((PUBLIC / "404.html").resolve())
     if not_found and not_found.meta.get("robots") != "noindex":
         fail(errors, "404.html: robots metadata must be noindex")
+
+    roadmap = documents.get((PUBLIC / "roadmap/index.html").resolve())
+    if roadmap and roadmap.canonical != "https://cantinarr.com/roadmap/":
+        fail(errors, f"roadmap/index.html: canonical URL is {roadmap.canonical!r}")
+
+    board_admin = documents.get((PUBLIC / "roadmap/admin.html").resolve())
+    if board_admin and board_admin.meta.get("robots") != "noindex":
+        fail(errors, "roadmap/admin.html: robots metadata must be noindex")
 
     for source, parser in documents.items():
         for raw in parser.references:

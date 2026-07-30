@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "public/**"
+      - "functions/**"
+      - "wrangler.toml"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 

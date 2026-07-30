@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap &amp; feature requests — Cantinarr</title>
+<meta name="description" content="Request Cantinarr features and vote on what ships next. No account needed — one tap and your vote counts.">
+<link rel="canonical" href="https://cantinarr.com/roadmap/">
+<meta property="og:site_name" content="Cantinarr">
+<meta property="og:title" content="Cantinarr roadmap — you call the next round.">
+<meta property="og:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
+<meta property="og:url" content="https://cantinarr.com/roadmap/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://cantinarr.com/static/og-afe0b181.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="500">
+<meta property="og:image:alt" content="Cantinarr — Discover, request, manage, and repair.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cantinarr roadmap — you call the next round.">
+<meta name="twitter:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
+<meta name="twitter:image" content="https://cantinarr.com/static/og-afe0b181.png">
+<meta name="twitter:image:alt" content="Cantinarr — Discover, request, manage, and repair.">
+<meta name="theme-color" content="#0C0805">
+<link rel="icon" href="/static/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="preload" href="/static/fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/schibsted-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/site.css">
+<style>
+.board-hero { padding: 72px 0 24px; position: relative; z-index: 1; }
+.board-hero h1 {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 620;
+  font-size: clamp(2.1rem, 4.4vw, 3.2rem);
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  margin-bottom: 18px;
+}
+.board-hero .lede { margin-bottom: 26px; }
+.board-wrap { padding: 26px 0 90px; position: relative; z-index: 1; }
+.board-cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 26px; align-items: start; }
+@media (max-width: 900px) { .board-cols { grid-template-columns: 1fr; } }
+
+.board-note { color: var(--quiet); font-size: .9rem; margin-top: 14px; }
+#board-status { color: var(--muted); font-size: .98rem; padding: 8px 2px 18px; }
+#board-status:empty { display: none; }
+
+.board-list { list-style: none; display: grid; gap: 14px; }
+.board-item {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 22px;
+}
+.board-item h3 { font-family: var(--display); font-weight: 600; font-size: 1.18rem; letter-spacing: .005em; }
+.board-item .detail { color: var(--muted); font-size: .95rem; margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.board-item .item-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+.status-chip {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.chip-planned { color: var(--requested); border: 1px solid color-mix(in srgb, var(--requested) 45%, transparent); }
+.chip-shipped { color: var(--available); border: 1px solid color-mix(in srgb, var(--available) 45%, transparent); }
+
+.vote-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 62px;
+  padding: 10px 10px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 1.02rem;
+  cursor: pointer;
+  transition: border-color .25s, background .25s, transform .25s;
+}
+.vote-btn .arrow { font-size: .72rem; color: var(--gold); line-height: 1; }
+.vote-btn:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); transform: translateY(-2px); }
+.vote-btn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
+.vote-btn[aria-pressed="true"] .arrow { color: var(--on-gold); }
+.vote-btn:disabled { opacity: .5; cursor: default; transform: none; }
+
+.shipped-title { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 34px 0 14px; }
+
+.suggest-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 26px 24px;
+  position: sticky;
+  top: 84px;
+}
+@media (max-width: 900px) { .suggest-card { position: static; } }
+.suggest-card h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin-bottom: 6px; }
+.suggest-card .sub { color: var(--muted); font-size: .92rem; margin-bottom: 18px; }
+.suggest-card label { display: block; font-family: var(--mono); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .16em; color: var(--gold); margin: 14px 0 6px; }
+.suggest-card label .opt { color: var(--quiet); text-transform: none; letter-spacing: normal; }
+.suggest-card input[type="text"],
+.suggest-card textarea {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: .98rem;
+  padding: 11px 13px;
+}
+.suggest-card textarea { min-height: 110px; resize: vertical; }
+.suggest-card input:focus-visible, .suggest-card textarea:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.suggest-card .btn { margin-top: 18px; border: 0; cursor: pointer; font-family: var(--body); }
+.suggest-card .fine { color: var(--quiet); font-size: .82rem; margin-top: 14px; line-height: 1.5; }
+#turnstile-slot { margin-top: 16px; }
+#turnstile-slot:empty { display: none; }
+#form-status { font-size: .92rem; margin-top: 12px; }
+#form-status.ok { color: var(--available); }
+#form-status.err { color: var(--signal); }
+.hp { position: absolute; left: -9999px; top: -9999px; height: 1px; width: 1px; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div class="lamp lamp-hero" aria-hidden="true"></div>
+
+<nav class="site-nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="/">
+      <img src="/static/logo.png" alt="" width="30" height="30">
+      <span class="wordmark">Cantin<span class="arr">arr</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="/#features">Features</a>
+      <a href="/#selfhost">Self-host</a>
+      <a href="/roadmap/" aria-current="page">Roadmap</a>
+      <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Demo</a>
+      <a class="gh" href="https://github.com/windoze95/cantinarr" aria-label="Cantinarr on GitHub">
+        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="board-hero">
+  <div class="wrap">
+    <p class="kicker">Roadmap</p>
+    <h1>You call the next&nbsp;round.</h1>
+    <p class="lede">Request a feature, or vote for the ones you want. No account, no sign-in — one tap and your vote counts.</p>
+  </div>
+</header>
+
+<main class="board-wrap">
+  <div class="wrap board-cols">
+    <section aria-label="Feature requests">
+      <div id="board-status" role="status">Loading the board…</div>
+      <ol id="board-list" class="board-list"></ol>
+      <h2 class="shipped-title" id="shipped-title" hidden>Shipped</h2>
+      <ol id="shipped-list" class="board-list" aria-labelledby="shipped-title"></ol>
+      <p class="board-note">Voting sets a single anonymous cookie so the board remembers which votes are yours. No account, no tracking.</p>
+      <noscript><p class="board-note">The board needs JavaScript to load requests and count votes.</p></noscript>
+    </section>
+
+    <section class="suggest-card" id="suggest" aria-label="Suggest a feature">
+      <h2>Suggest a feature</h2>
+      <p class="sub">New ideas appear on the board after a quick human review.</p>
+      <form id="suggest-form">
+        <label for="f-title">What should Cantinarr do?</label>
+        <input id="f-title" name="title" type="text" maxlength="120" minlength="4" required autocomplete="off" placeholder="One clear sentence">
+        <label for="f-detail">Details <span class="opt">(optional)</span></label>
+        <textarea id="f-detail" name="detail" maxlength="2000" placeholder="What problem does it solve? How should it work?"></textarea>
+        <div class="hp" aria-hidden="true">
+          <label for="f-website">Website</label>
+          <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <div id="turnstile-slot"></div>
+        <button class="btn btn-gold" type="submit">Submit idea</button>
+        <p id="form-status" role="status"></p>
+        <p class="fine">Prefer GitHub? Bugs and technical issues belong on the <a href="https://github.com/windoze95/cantinarr/issues" target="_blank" rel="noopener">issue tracker</a>.</p>
+      </form>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot-row">
+    <div>
+      <a class="brand" href="/"><img src="/static/logo.png" alt="" width="26" height="26"><span class="wordmark">Cantin<span class="arr">arr</span></span></a>
+      <p class="foot-tag">Discover · Request · Manage · Repair</p>
+    </div>
+    <div class="foot-links">
+      <a href="https://github.com/windoze95/cantinarr" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/windoze95/cantinarr/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/windoze95/cantinarr/blob/main/docs/privacy-policy.md" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Live demo</a>
+    </div>
+  </div>
+  <div class="wrap foot-small">© 2026 Julian Dice · Open source under AGPL-3.0 · No ads, no analytics, no tracking — here or in the app.</div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var boardStatus = document.getElementById('board-status');
+  var boardList = document.getElementById('board-list');
+  var shippedTitle = document.getElementById('shipped-title');
+  var shippedList = document.getElementById('shipped-list');
+  var form = document.getElementById('suggest-form');
+  var formStatus = document.getElementById('form-status');
+  var turnstileWidgetId = null;
+  var turnstileReady = false;
+
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderItem(feature) {
+    var item = make('li', 'board-item');
+    var votable = feature.status === 'open' || feature.status === 'planned';
+
+    var btn = make('button', 'vote-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-pressed', feature.voted ? 'true' : 'false');
+    btn.setAttribute('aria-label', 'Vote for “' + feature.title + '” — ' + feature.votes + ' votes');
+    btn.disabled = !votable;
+    btn.appendChild(make('span', 'arrow', '▲'));
+    var count = make('span', 'count', String(feature.votes));
+    btn.appendChild(count);
+    if (votable) {
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        postJson('/api/board/vote', { id: feature.id }).then(function (result) {
+          count.textContent = String(result.votes);
+          btn.setAttribute('aria-pressed', result.voted ? 'true' : 'false');
+        }).catch(function (err) {
+          setBoardStatus(err && err.code === 'rate_limited'
+            ? 'Easy there — that is a lot of votes for one hour. Try again later.'
+            : 'That vote did not go through. Give it another try in a moment.');
+        }).finally(function () { btn.disabled = false; });
+      });
+    }
+    item.appendChild(btn);
+
+    var body = make('div');
+    var head = make('div', 'item-head');
+    head.appendChild(make('h3', null, feature.title));
+    if (feature.status === 'planned') head.appendChild(make('span', 'status-chip chip-planned', 'Planned'));
+    if (feature.status === 'shipped') head.appendChild(make('span', 'status-chip chip-shipped', 'Shipped'));
+    body.appendChild(head);
+    if (feature.detail) body.appendChild(make('p', 'detail', feature.detail));
+    item.appendChild(body);
+    return item;
+  }
+
+  function setBoardStatus(message) {
+    boardStatus.textContent = message || '';
+  }
+
+  function render(data) {
+    boardList.textContent = '';
+    shippedList.textContent = '';
+    var active = data.features.filter(function (f) { return f.status !== 'shipped'; });
+    var shipped = data.features.filter(function (f) { return f.status === 'shipped'; });
+    active.forEach(function (f) { boardList.appendChild(renderItem(f)); });
+    shipped.forEach(function (f) { shippedList.appendChild(renderItem(f)); });
+    shippedTitle.hidden = shipped.length === 0;
+    setBoardStatus(active.length === 0 ? 'No open requests yet — yours could be the first on the board.' : '');
+    if (data.siteKey) setupTurnstile(data.siteKey);
+  }
+
+  function postJson(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (!res.ok) {
+          var err = new Error('request_failed');
+          err.code = body && body.error;
+          throw err;
+        }
+        return body;
+      });
+    });
+  }
+
+  function setupTurnstile(siteKey) {
+    if (turnstileReady) return;
+    turnstileReady = true;
+    window.cantinarrTurnstileLoaded = function () {
+      turnstileWidgetId = window.turnstile.render('#turnstile-slot', {
+        sitekey: siteKey,
+        theme: 'dark'
+      });
+    };
+    var script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=cantinarrTurnstileLoaded&render=explicit';
+    script.async = true;
+    document.head.appendChild(script);
+  }
+
+  function setFormStatus(message, kind) {
+    formStatus.textContent = message;
+    formStatus.className = kind || '';
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var payload = {
+      title: document.getElementById('f-title').value,
+      detail: document.getElementById('f-detail').value,
+      website: document.getElementById('f-website').value
+    };
+    if (turnstileWidgetId !== null) {
+      payload.turnstile = window.turnstile.getResponse(turnstileWidgetId);
+      if (!payload.turnstile) {
+        setFormStatus('Give the bot check a second to finish, then submit again.', 'err');
+        return;
+      }
+    }
+    var button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setFormStatus('Sending…', '');
+    postJson('/api/board/submit', payload).then(function () {
+      form.reset();
+      if (turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
+      setFormStatus('Thanks — your idea is in the review queue.', 'ok');
+    }).catch(function (err) {
+      var messages = {
+        invalid_title: 'Add a slightly longer title so folks know what they are voting for.',
+        rate_limited: 'That is a lot of ideas for one day — save the rest for tomorrow.',
+        turnstile_failed: 'The bot check did not pass. Reload the page and try again.',
+        board_unconfigured: 'The board is still being set up. Check back soon.'
+      };
+      setFormStatus(messages[err.code] || 'Something hiccuped — try again in a moment.', 'err');
+    }).finally(function () { button.disabled = false; });
+  });
+
+  fetch('/api/board').then(function (res) {
+    if (!res.ok) throw new Error('board_unavailable');
+    return res.json();
+  }).then(render).catch(function () {
+    setBoardStatus('The board is still being set up — check back soon, or drop your idea on GitHub in the meantime.');
+  });
+})();
+</script>
+</body>
+</html>

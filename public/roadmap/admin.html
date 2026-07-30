@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board moderation — Cantinarr</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0C0805">
+<link rel="icon" href="/static/favicon.png" type="image/png">
+<link rel="stylesheet" href="/site.css">
+<style>
+.mod-wrap { max-width: 860px; margin: 0 auto; padding: 60px 24px 90px; }
+.mod-wrap h1 { font-family: var(--display); font-weight: 620; font-size: 2rem; margin-bottom: 8px; }
+.mod-wrap .sub { color: var(--muted); margin-bottom: 28px; }
+.unlock { display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+.unlock input {
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: .95rem;
+  padding: 11px 13px;
+}
+.unlock .btn { border: 0; cursor: pointer; font-family: var(--body); }
+#mod-status { color: var(--muted); margin-bottom: 18px; }
+#mod-status:empty { display: none; }
+.mod-list { list-style: none; display: grid; gap: 12px; padding: 0; }
+.mod-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+.mod-item h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: inline; }
+.mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
+.mod-item .meta.pending { color: var(--signal); }
+.mod-item .detail { color: var(--muted); font-size: .92rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
+.mod-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.mod-actions button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: .85rem;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.mod-actions button:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); }
+.mod-actions button.danger { color: var(--signal); }
+</style>
+</head>
+<body>
+<main class="mod-wrap">
+  <h1>Board moderation</h1>
+  <p class="sub">Approve, reclassify, or remove <a href="/roadmap/">roadmap</a> submissions. Requires the admin token.</p>
+  <div class="unlock">
+    <input id="token" type="password" placeholder="Admin token" autocomplete="current-password">
+    <button id="load" class="btn btn-gold" type="button">Load board</button>
+  </div>
+  <p id="mod-status" role="status"></p>
+  <ol id="mod-list" class="mod-list"></ol>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var tokenInput = document.getElementById('token');
+  var status = document.getElementById('mod-status');
+  var list = document.getElementById('mod-list');
+  tokenInput.value = sessionStorage.getItem('cb_admin') || '';
+
+  function api(path, options) {
+    options = options || {};
+    options.headers = Object.assign({
+      authorization: 'Bearer ' + tokenInput.value.trim(),
+      'content-type': 'application/json'
+    }, options.headers || {});
+    return fetch(path, options).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (!res.ok) throw new Error(body.error || ('http_' + res.status));
+        return body;
+      });
+    });
+  }
+
+  function act(id, action) {
+    return api('/api/board/admin', { method: 'POST', body: JSON.stringify({ id: id, action: action }) })
+      .then(load)
+      .catch(function (err) { status.textContent = 'Action failed: ' + err.message; });
+  }
+
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function actionButton(label, id, action, danger) {
+    var btn = make('button', danger ? 'danger' : null, label);
+    btn.type = 'button';
+    if (danger) {
+      btn.addEventListener('click', function () {
+        if (btn.dataset.armed === '1') { act(id, action); return; }
+        btn.dataset.armed = '1';
+        btn.textContent = 'Confirm ' + label.toLowerCase();
+        setTimeout(function () { btn.dataset.armed = ''; btn.textContent = label; }, 4000);
+      });
+    } else {
+      btn.addEventListener('click', function () { act(id, action); });
+    }
+    return btn;
+  }
+
+  function render(features) {
+    list.textContent = '';
+    features.forEach(function (f) {
+      var item = make('li', 'mod-item');
+      var head = make('div');
+      head.appendChild(make('h2', null, f.title));
+      head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''), f.status + ' · ' + f.votes + ' votes'));
+      item.appendChild(head);
+      if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+      var actions = make('div', 'mod-actions');
+      if (f.status === 'pending') actions.appendChild(actionButton('Approve', f.id, 'approve'));
+      if (f.status !== 'open' && f.status !== 'pending') actions.appendChild(actionButton('Reopen', f.id, 'open'));
+      if (f.status !== 'planned') actions.appendChild(actionButton('Planned', f.id, 'planned'));
+      if (f.status !== 'shipped') actions.appendChild(actionButton('Shipped', f.id, 'shipped'));
+      if (f.status !== 'declined') actions.appendChild(actionButton('Decline', f.id, 'decline', true));
+      actions.appendChild(actionButton('Delete', f.id, 'delete', true));
+      item.appendChild(actions);
+      list.appendChild(item);
+    });
+    status.textContent = features.length === 0 ? 'Nothing on the board yet.' : '';
+  }
+
+  function load() {
+    if (!tokenInput.value.trim()) { status.textContent = 'Enter the admin token first.'; return; }
+    sessionStorage.setItem('cb_admin', tokenInput.value.trim());
+    status.textContent = 'Loading…';
+    api('/api/board/admin').then(function (data) { render(data.features); })
+      .catch(function (err) {
+        status.textContent = err.message === 'unauthorized'
+          ? 'That token was rejected.'
+          : 'Could not load the board: ' + err.message;
+      });
+  }
+
+  document.getElementById('load').addEventListener('click', load);
+  tokenInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') load(); });
+})();
+</script>
+</body>
+</html>
