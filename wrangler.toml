@@ -9,7 +9,7 @@ compatibility_date = "2026-07-01"
 # Public Turnstile site key for the /roadmap/ submission form (safe to commit).
 # Empty disables the CAPTCHA widget; the API then relies on the honeypot,
 # rate limits, and moderation queue alone.
-TURNSTILE_SITE_KEY = ""
+TURNSTILE_SITE_KEY = "0x4AAAAAAECMQ4LQaOftsy8B"
 
 [[d1_databases]]
 binding = "DB"
