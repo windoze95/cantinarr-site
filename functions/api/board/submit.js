@@ -10,13 +10,15 @@ import {
   ipHash,
   isoSince,
   json,
+  notifyNewSubmission,
   readJsonBody,
   verifyTurnstile,
 } from './_util.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost(context) {
+  const { request, env } = context;
   const db = env.DB;
   if (!db) return json({ error: 'board_unconfigured' }, { status: 503 });
   await ensureSchema(db);
@@ -49,5 +51,6 @@ export async function onRequestPost({ request, env }) {
     db.prepare(`INSERT INTO submission_log (ip_hash) VALUES (?1)`).bind(hash),
   ]);
 
+  notifyNewSubmission(context, env, title, detail);
   return json({ ok: true, queued: true });
 }
