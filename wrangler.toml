@@ -14,9 +14,7 @@ TURNSTILE_SITE_KEY = ""
 [[d1_databases]]
 binding = "DB"
 database_name = "cantinarr-board"
-# Placeholder — replace with the id from `wrangler d1 create cantinarr-board`
-# before merging; deploys fail while this id does not exist.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "97ac5b9a-dc21-44f3-b816-02516f2fb624"
 
 # Secrets (set with `wrangler pages secret put <NAME> --project-name=cantinarr`,
 # never committed):
