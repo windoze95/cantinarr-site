@@ -1,0 +1,25 @@
+# Cloudflare Pages configuration — source of truth for the deployed project.
+# `public/` holds the static site; `functions/` holds the feature board API.
+
+name = "cantinarr"
+pages_build_output_dir = "public"
+compatibility_date = "2026-07-01"
+
+[vars]
+# Public Turnstile site key for the /roadmap/ submission form (safe to commit).
+# Empty disables the CAPTCHA widget; the API then relies on the honeypot,
+# rate limits, and moderation queue alone.
+TURNSTILE_SITE_KEY = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cantinarr-board"
+# Placeholder — replace with the id from `wrangler d1 create cantinarr-board`
+# before merging; deploys fail while this id does not exist.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# Secrets (set with `wrangler pages secret put <NAME> --project-name=cantinarr`,
+# never committed):
+#   TURNSTILE_SECRET — Turnstile server-side secret for siteverify
+#   ADMIN_TOKEN      — bearer token for /api/board/admin and /roadmap/admin.html
+#   VOTE_SALT        — random salt for the rate-limiting IP hash
