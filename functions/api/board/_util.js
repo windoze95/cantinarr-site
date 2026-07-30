@@ -151,12 +151,18 @@ export function notifyNewSubmission(context, env, title, detail) {
     click: 'https://cantinarr.com/roadmap/admin.html',
     tags: ['bulb'],
   };
+  // Only observable via `wrangler pages deployment tail`; failures stay silent
+  // for the submitter.
   context.waitUntil(
     fetch(env.NTFY_URL || 'https://ntfy.sh', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
-    }).catch(() => {})
+    })
+      .then(async (r) => {
+        if (!r.ok) console.error('ntfy publish failed', r.status, (await r.text()).slice(0, 200));
+      })
+      .catch((err) => console.error('ntfy publish error', err && err.message))
   );
 }
 
