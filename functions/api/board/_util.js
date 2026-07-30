@@ -139,6 +139,27 @@ export async function readJsonBody(request) {
   }
 }
 
+// Fire-and-forget moderation alert for a newly queued idea, published to a
+// secret ntfy topic (phone push). Runs through waitUntil and swallows
+// errors: notifications must never delay or fail a submission.
+export function notifyNewSubmission(context, env, title, detail) {
+  if (!env.NTFY_TOPIC) return;
+  const payload = {
+    topic: env.NTFY_TOPIC,
+    title: 'New Cantinarr feature idea',
+    message: detail ? `${title}\n\n${detail.slice(0, 500)}` : title,
+    click: 'https://cantinarr.com/roadmap/admin.html',
+    tags: ['bulb'],
+  };
+  context.waitUntil(
+    fetch(env.NTFY_URL || 'https://ntfy.sh', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {})
+  );
+}
+
 export function cleanText(value, maxLength) {
   if (typeof value !== 'string') return '';
   return value
