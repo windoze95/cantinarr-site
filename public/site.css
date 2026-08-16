@@ -216,13 +216,23 @@ h1 em {
   border-radius: 14px;
   padding: 11px 18px 11px 15px;
   color: var(--ink);
-  cursor: default;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: transform .3s cubic-bezier(.2, .7, .2, 1), border-color .3s, box-shadow .3s;
+}
+.store:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--gold) 50%, var(--border));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
 }
 .store-mark { width: 26px; height: 26px; color: var(--ink); flex: none; }
 .store-text { display: flex; flex-direction: column; line-height: 1.25; }
 .store-sub { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .store-big { font-size: 1.02rem; font-weight: 700; }
-.soon-chip {
+.store-chip {
   position: absolute;
   top: -9px; right: -10px;
   font-family: var(--mono);
@@ -237,6 +247,14 @@ h1 em {
   transform: rotate(3deg);
   box-shadow: 0 0 16px rgba(242, 172, 45, .45);
 }
+.chip-invite {
+  background: var(--surface-2);
+  color: var(--gold-bright);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--border));
+  box-shadow: none;
+}
+.stores-note { margin-top: 18px; font-size: .9rem; color: var(--quiet); max-width: 46ch; }
+.stores-note + .hero-note { margin-top: 12px; }
 
 /* hero phones */
 .hero-visual { position: relative; height: 640px; }
@@ -574,6 +592,67 @@ section { position: relative; padding: 104px 0; }
 .btn-gold:hover { color: var(--on-gold); transform: translateY(-2px); box-shadow: 0 10px 36px rgba(242, 172, 45, .45); }
 .btn-ghost { border: 1px solid var(--border); color: var(--ink); }
 .btn-ghost:hover { color: var(--gold-bright); border-color: color-mix(in srgb, var(--gold) 50%, var(--border)); transform: translateY(-2px); }
+.get-note { margin-top: 22px; font-size: .9rem; color: var(--quiet); }
+
+/* ---------- dialog ---------- */
+/* browsers without <dialog> render it as a plain inline element, so hide it explicitly */
+dialog:not([open]) { display: none; }
+.modal {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  margin: auto;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  overflow: auto;
+}
+.modal::backdrop { background: rgba(6, 4, 2, .74); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.modal-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px 30px 28px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .6);
+}
+.modal-x {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 34px; height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.modal-x:hover { color: var(--gold-bright); border-color: var(--border); }
+.modal-title { font-family: var(--display); font-size: clamp(1.5rem, 3.6vw, 1.9rem); font-weight: 600; margin-top: 10px; }
+.modal-body { margin-top: 14px; color: var(--muted); font-size: .96rem; }
+.modal-email {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 13px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  font-family: var(--mono);
+  font-size: .92rem;
+  word-break: break-all;
+}
+.modal-email .copy-btn { margin-left: auto; }
+.modal-fine { margin-top: 16px; font-size: .82rem; color: var(--quiet); }
 
 /* ---------- footer ---------- */
 .site-footer { border-top: 1px solid var(--border); background: var(--bg-2); }
@@ -619,5 +698,5 @@ section { position: relative; padding: 104px 0; }
   html { scroll-behavior: auto; }
   .rise, .reveal { opacity: 1; transform: none; animation: none; transition: none; }
   .float-chip, .get-sign, .marquee-track { animation: none; }
-  .tcard, .fcard, .btn { transition: none; }
+  .tcard, .fcard, .btn, .store { transition: none; }
 }
