@@ -242,7 +242,10 @@ def verify() -> list[str]:
     for path in PUBLIC.rglob("*"):
         if not path.is_file() or path.suffix.lower() in {".png", ".woff2"}:
             continue
-        text = path.read_text(encoding="utf-8")
+        # undecodable bytes must still be scanned, not crash the run: a stray binary
+        # file (Finder's .DS_Store) is reported by the top-level check above, and a
+        # traceback here would hide every other finding behind it.
+        text = path.read_text(encoding="utf-8", errors="replace")
         for label, pattern in FORBIDDEN_PUBLIC_PATTERNS.items():
             if pattern.search(text):
                 fail(errors, f"{path.relative_to(ROOT)}: contains forbidden {label}")
