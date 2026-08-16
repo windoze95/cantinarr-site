@@ -232,7 +232,7 @@
 
 <dialog id="android-beta" class="modal" aria-labelledby="android-beta-title">
   <div class="modal-card">
-    <button class="modal-x" type="button" data-close-dialog aria-label="Close">×</button>
+    <button class="modal-x" type="button" data-close-dialog aria-label="Close" autofocus>×</button>
     <p class="kicker">Android beta</p>
     <h2 class="modal-title" id="android-beta-title">Email me for an invite.</h2>
     <p class="modal-body">The Android app is in closed testing on Google Play, so testers are added by hand. Send me the email address associated with your Play Store (Google) account — that exact address is what Google needs to let you in — and I’ll reply with the opt-in link.</p>
@@ -245,23 +245,43 @@
 </dialog>
 
 <script>
+function openDialog(id) {
+  var dlg = document.getElementById(id);
+  /* the hash path passes in whatever the URL says, so #features must not match here */
+  if (!dlg || dlg.tagName !== 'DIALOG' || dlg.open) { return; }
+  if (typeof dlg.showModal === 'function') { dlg.showModal(); } else { dlg.setAttribute('open', ''); }
+  /* opening during page parse can leave focus on the dialog box itself, which paints
+     the focus ring around the whole card — put it on a real control instead */
+  var first = dlg.querySelector('[autofocus]');
+  if (first) { first.focus(); }
+}
 document.querySelectorAll('[data-dialog]').forEach(function (opener) {
-  opener.addEventListener('click', function () {
-    var dlg = document.getElementById(opener.getAttribute('data-dialog'));
-    if (!dlg) { return; }
-    if (typeof dlg.showModal === 'function') { dlg.showModal(); } else { dlg.setAttribute('open', ''); }
-  });
+  opener.addEventListener('click', function () { openDialog(opener.getAttribute('data-dialog')); });
 });
 document.querySelectorAll('dialog').forEach(function (dlg) {
   /* clicking the backdrop lands on the dialog itself, never on .modal-card */
   dlg.addEventListener('click', function (e) { if (e.target === dlg) { closeDialog(dlg); } });
+  /* Escape reports only 'cancel' in some browsers, so both events clear the hash */
+  dlg.addEventListener('close', dropHash);
+  dlg.addEventListener('cancel', dropHash);
   dlg.querySelectorAll('[data-close-dialog]').forEach(function (btn) {
     btn.addEventListener('click', function () { closeDialog(dlg); });
   });
   function closeDialog(el) {
     if (typeof el.close === 'function') { el.close(); } else { el.removeAttribute('open'); }
+    dropHash();
+  }
+  /* a closed dialog should not reopen on reload or on Back */
+  function dropHash() {
+    if (location.hash === '#' + dlg.id) { history.replaceState(null, '', location.pathname + location.search); }
   }
 });
+/* /#android-beta arrives from off-site links and opens the dialog on landing */
+function openDialogFromHash() {
+  if (location.hash.length > 1) { openDialog(location.hash.slice(1)); }
+}
+window.addEventListener('hashchange', openDialogFromHash);
+openDialogFromHash();
 document.querySelectorAll('.copy-btn').forEach(function (btn) {
   btn.addEventListener('click', function () {
     navigator.clipboard.writeText(btn.getAttribute('data-copy')).then(function () {
