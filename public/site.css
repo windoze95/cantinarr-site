@@ -139,6 +139,8 @@ img { max-width: 100%; height: auto; display: block; }
 .nav-links a:hover { color: var(--gold-bright); text-decoration: none; }
 .nav-links .gh { display: inline-flex; color: var(--muted); }
 .nav-links .gh:hover { color: var(--gold); }
+.nav-links .dc { display: inline-flex; color: var(--muted); }
+.nav-links .dc:hover { color: var(--gold); }
 
 /* ---------- hero ---------- */
 .hero { position: relative; overflow: hidden; }
@@ -683,7 +685,7 @@ dialog:not([open]) { display: none; }
   section { padding: 84px 0; }
 }
 @media (max-width: 680px) {
-  .nav-links a:not(.gh) { display: none; }
+  .nav-links a:not(.gh):not(.dc) { display: none; }
   .trio, .fgrid { grid-template-columns: 1fr; }
   .hero-visual { height: 640px; }
   .phone-back { display: none; }
