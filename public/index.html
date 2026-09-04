@@ -186,7 +186,7 @@
       </ul>
     </div>
     <figure class="terminal reveal">
-      <figcaption class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="term-title">docker-compose.yml</span><button class="copy-btn" type="button" data-copy="services:&#10;  cantinarr:&#10;    image: ghcr.io/windoze95/cantinarr:latest&#10;    ports:&#10;      - &quot;8585:8585&quot;&#10;    volumes:&#10;      - ./config:/config&#10;    environment:&#10;      # optional: zero-config push notifications&#10;      - CANTINARR_PUSH_GATEWAY_URL=https://push.julian.codes&#10;    restart: unless-stopped">Copy</button></figcaption>
+      <figcaption class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="term-title">docker-compose.yml</span><button class="copy-btn" type="button" data-copy="services:&#10;  cantinarr:&#10;    image: ghcr.io/windoze95/cantinarr:latest&#10;    ports:&#10;      - &quot;8585:8585&quot;&#10;    volumes:&#10;      - ./config:/config&#10;    environment:&#10;      # optional: zero-config push notifications&#10;      - CANTINARR_PUSH_GATEWAY_URL=https://push.cantinarr.com&#10;    restart: unless-stopped">Copy</button></figcaption>
       <pre><code><span class="y">services</span>:
   <span class="y">cantinarr</span>:
     <span class="y">image</span>: ghcr.io/windoze95/cantinarr:latest
@@ -196,7 +196,7 @@
       - ./config:/config
     <span class="y">environment</span>:
       <span class="c"># optional: zero-config push notifications</span>
-      - CANTINARR_PUSH_GATEWAY_URL=https://push.julian.codes
+      - CANTINARR_PUSH_GATEWAY_URL=https://push.cantinarr.com
     <span class="y">restart</span>: unless-stopped</code></pre>
     </figure>
   </div>
