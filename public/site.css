@@ -685,7 +685,8 @@ dialog:not([open]) { display: none; }
   section { padding: 84px 0; }
 }
 @media (max-width: 680px) {
-  .nav-links a:not(.gh):not(.dc) { display: none; }
+  .nav-links { gap: 16px; }
+  .nav-links a:not(.gh):not(.dc):not(.docs) { display: none; }
   .trio, .fgrid { grid-template-columns: 1fr; }
   .hero-visual { height: 640px; }
   .phone-back { display: none; }
