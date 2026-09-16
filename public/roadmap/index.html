@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Roadmap &amp; feature requests — Cantinarr</title>
-<meta name="description" content="Request Cantinarr features and vote on what ships next. No account needed — one tap and your vote counts.">
+<title>Roadmap &amp; feature requests · Cantinarr</title>
+<meta name="description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <link rel="canonical" href="https://cantinarr.com/roadmap/">
 <meta property="og:site_name" content="Cantinarr">
-<meta property="og:title" content="Cantinarr roadmap — you call the next round.">
+<meta property="og:title" content="Cantinarr roadmap: you call the next round.">
 <meta property="og:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <meta property="og:url" content="https://cantinarr.com/roadmap/">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://cantinarr.com/static/og-afe0b181.png">
 <meta property="og:image:width" content="1024">
 <meta property="og:image:height" content="500">
-<meta property="og:image:alt" content="Cantinarr — Discover, request, manage, and repair.">
+<meta property="og:image:alt" content="Cantinarr: discover, request, manage, and repair.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Cantinarr roadmap — you call the next round.">
+<meta name="twitter:title" content="Cantinarr roadmap: you call the next round.">
 <meta name="twitter:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <meta name="twitter:image" content="https://cantinarr.com/static/og-afe0b181.png">
-<meta name="twitter:image:alt" content="Cantinarr — Discover, request, manage, and repair.">
+<meta name="twitter:image:alt" content="Cantinarr: discover, request, manage, and repair.">
 <meta name="theme-color" content="#0C0805">
 <link rel="icon" href="/static/favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -163,7 +163,7 @@
   <div class="wrap">
     <p class="kicker">Roadmap</p>
     <h1>You call the next&nbsp;round.</h1>
-    <p class="lede">Request a feature, or vote for the ones you want. No account, no sign-in — one tap and your vote counts.</p>
+    <p class="lede">Request a feature, or vote for the ones you want. No account, no sign-in. One tap and you’re counted.</p>
   </div>
 </header>
 
@@ -213,7 +213,7 @@
       <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Live demo</a>
     </div>
   </div>
-  <div class="wrap foot-small">© 2026 Julian Dice · Open source under AGPL-3.0 · No ads, no analytics, no tracking — here or in the app.</div>
+  <div class="wrap foot-small">© 2026 Julian Dice · Open source under AGPL-3.0 · No ads, no analytics, no tracking. Not here, not in the app.</div>
 </footer>
 
 <script>
@@ -243,7 +243,7 @@
     var btn = make('button', 'vote-btn');
     btn.type = 'button';
     btn.setAttribute('aria-pressed', feature.voted ? 'true' : 'false');
-    btn.setAttribute('aria-label', 'Vote for “' + feature.title + '” — ' + feature.votes + ' votes');
+    btn.setAttribute('aria-label', 'Vote for “' + feature.title + '”, ' + feature.votes + ' votes');
     btn.disabled = !votable;
     btn.appendChild(make('span', 'arrow', '▲'));
     var count = make('span', 'count', String(feature.votes));
@@ -256,8 +256,8 @@
           btn.setAttribute('aria-pressed', result.voted ? 'true' : 'false');
         }).catch(function (err) {
           setBoardStatus(err && err.code === 'rate_limited'
-            ? 'Easy there — that is a lot of votes for one hour. Try again later.'
-            : 'That vote did not go through. Give it another try in a moment.');
+            ? 'Easy there, that’s a lot of votes for one hour. Try again later.'
+            : 'That vote didn’t go through. Try again in a moment.');
         }).finally(function () { btn.disabled = false; });
       });
     }
@@ -286,7 +286,7 @@
     active.forEach(function (f) { boardList.appendChild(renderItem(f)); });
     shipped.forEach(function (f) { shippedList.appendChild(renderItem(f)); });
     shippedTitle.hidden = shipped.length === 0;
-    setBoardStatus(active.length === 0 ? 'No open requests yet — yours could be the first on the board.' : '');
+    setBoardStatus(active.length === 0 ? 'No open requests yet. Yours could be the first.' : '');
     if (data.siteKey) setupTurnstile(data.siteKey);
   }
 
@@ -347,15 +347,15 @@
     postJson('/api/board/submit', payload).then(function () {
       form.reset();
       if (turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
-      setFormStatus('Thanks — your idea is in the review queue.', 'ok');
+      setFormStatus('Got it. Your idea is in the review queue.', 'ok');
     }).catch(function (err) {
       var messages = {
-        invalid_title: 'Add a slightly longer title so folks know what they are voting for.',
-        rate_limited: 'That is a lot of ideas for one day — save the rest for tomorrow.',
-        turnstile_failed: 'The bot check did not pass. Reload the page and try again.',
+        invalid_title: 'Give it a longer title so people know what they’re voting for.',
+        rate_limited: 'That’s a lot of ideas for one day. Save the rest for tomorrow.',
+        turnstile_failed: 'The bot check didn’t pass. Reload and try again.',
         board_unconfigured: 'The board is still being set up. Check back soon.'
       };
-      setFormStatus(messages[err.code] || 'Something hiccuped — try again in a moment.', 'err');
+      setFormStatus(messages[err.code] || 'Something hiccuped. Try again in a moment.', 'err');
     }).finally(function () { button.disabled = false; });
   });
 
@@ -363,7 +363,7 @@
     if (!res.ok) throw new Error('board_unavailable');
     return res.json();
   }).then(render).catch(function () {
-    setBoardStatus('The board is still being set up — check back soon, or drop your idea on GitHub in the meantime.');
+    setBoardStatus('Couldn’t load the board. Check back soon, or drop your idea on GitHub in the meantime.');
   });
 })();
 </script>
