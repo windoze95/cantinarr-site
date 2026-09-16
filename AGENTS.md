@@ -52,6 +52,7 @@ Operating manual for contributors and agents working on the Cantinarr marketing 
 - `.github/workflows/deploy.yml` deploys `public/` plus `functions/` (per `wrangler.toml`) to the existing Cloudflare Pages project after merges to `main`.
 - `wrangler.toml` is the source of truth for the D1 binding and the public Turnstile site key; deploys fail if its `database_id` does not exist in the Cloudflare account.
 - Deployment requires the repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- `.github/workflows/deploy-docs.yml` publishes the separate `cantinarr-docs` Pages project at docs.cantinarr.com. Documentation source stays in the core repository's `docs-site/`; this repository supplies the existing Cloudflare credentials. Scheduled/manual publication selects current core main only after its exact-SHA CI passes, builds locked dependencies, rechecks main, and skips an already published SHA. Do not accept arbitrary refs or run PR code with deployment credentials. Run `python3 -m unittest discover -s scripts/tests -v` when changing selection behavior.
 - Manual fallback: `npx wrangler pages deploy public --project-name=cantinarr --branch=main`.
 - Never print, persist, or commit deployment credentials.
 
