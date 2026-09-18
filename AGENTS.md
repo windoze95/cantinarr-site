@@ -33,6 +33,7 @@ Operating manual for contributors and agents working on the Cantinarr marketing 
 
 - Marketing copy describes shipped Cantinarr behavior. Verify changing claims against `windoze95/cantinarr`; do not publish planned or inferred functionality as current.
 - Requester-facing copy uses plain product language, not arr implementation jargon.
+- Do not use em dashes in public copy. Lead the homepage with media requests and server management; explain optional AI features after the core workflow and setup.
 - Counts and enumerations drift quickly. Use them only when the number itself materially strengthens the claim, and verify every occurrence when they change.
 - Preserve intentional brand decisions recorded in the local project memory. If a requested line conflicts with them, surface the tradeoff rather than quietly reintroducing rejected language.
 - Keep the HTML description, Open Graph/Twitter descriptions, JSON-LD, visible hero copy, and social image mutually consistent without forcing them to be identical.
