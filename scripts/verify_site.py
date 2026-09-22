@@ -52,6 +52,9 @@ class SiteHTMLParser(HTMLParser):
         self.title_parts: list[str] = []
         self.in_title = False
         self.h1_count = 0
+        self.mobile_nav_count = 0
+        self.mobile_nav_links: list[str] = []
+        self.in_mobile_nav = False
         self.errors: list[str] = []
 
     def handle_starttag(self, tag: str, attrs_list: list[tuple[str, str | None]]) -> None:
@@ -64,11 +67,16 @@ class SiteHTMLParser(HTMLParser):
             self.in_title = True
         if tag == "h1":
             self.h1_count += 1
+        if tag == "details" and "mobile-nav" in attrs.get("class", "").split():
+            self.mobile_nav_count += 1
+            self.in_mobile_nav = True
         if "id" in attrs:
             self.ids.add(attrs["id"])
 
         if tag in {"a", "link"} and "href" in attrs:
             self.references.append(attrs["href"])
+        if tag == "a" and "href" in attrs and self.in_mobile_nav:
+            self.mobile_nav_links.append(attrs["href"])
         if tag in {"img", "script", "source"} and "src" in attrs:
             self.references.append(attrs["src"])
 
@@ -93,6 +101,8 @@ class SiteHTMLParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag.lower() == "title":
             self.in_title = False
+        if tag.lower() == "details" and self.in_mobile_nav:
+            self.in_mobile_nav = False
 
     def handle_data(self, data: str) -> None:
         if self.in_title:
@@ -219,6 +229,26 @@ def verify() -> list[str]:
     roadmap = documents.get((PUBLIC / "roadmap/index.html").resolve())
     if roadmap and roadmap.canonical != "https://cantinarr.com/roadmap/":
         fail(errors, f"roadmap/index.html: canonical URL is {roadmap.canonical!r}")
+
+    mobile_nav_shared = {
+        "https://docs.cantinarr.com",
+        "/roadmap/",
+        "https://demo.cantinarr.com",
+        "https://discord.gg/zAgRwGwmVB",
+        "https://github.com/windoze95/cantinarr",
+    }
+    mobile_nav_pages = {
+        index: {"#features", "#selfhost"},
+        roadmap: {"/#features", "/#selfhost"},
+    }
+    for document, page_links in mobile_nav_pages.items():
+        if not document:
+            continue
+        if document.mobile_nav_count != 1:
+            fail(errors, f"{document.source}: expected exactly one mobile navigation menu")
+        missing_links = (mobile_nav_shared | page_links) - set(document.mobile_nav_links)
+        if missing_links:
+            fail(errors, f"{document.source}: mobile navigation is missing {sorted(missing_links)}")
 
     board_admin = documents.get((PUBLIC / "roadmap/admin.html").resolve())
     if board_admin and board_admin.meta.get("robots") != "noindex":
