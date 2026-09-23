@@ -66,9 +66,11 @@ test('Luna moderates new and missed ideas once, and retries failures', async (t)
   assert.equal(calls.length, 1);
 
   const missed = await db.prepare(`INSERT INTO features (title, detail, status) VALUES ('Missed idea', '', 'pending')`).run();
-  assert.equal(await reviewPending(env), 1);
+  const alsoMissed = await db.prepare(`INSERT INTO features (title, detail, status) VALUES ('Also missed', '', 'pending')`).run();
+  assert.equal(await reviewPending(env), 2);
   assert.equal((await db.prepare(`SELECT state FROM feature_reviews WHERE feature_id = ?1`).bind(missed.meta.last_row_id).first()).state, 'completed');
   assert.equal((await db.prepare(`SELECT status FROM features WHERE id = ?1`).bind(missed.meta.last_row_id).first()).status, 'open');
+  assert.equal((await db.prepare(`SELECT status FROM features WHERE id = ?1`).bind(alsoMissed.meta.last_row_id).first()).status, 'open');
 
   const failed = await db.prepare(`INSERT INTO features (title, detail, status) VALUES ('Retry idea', '', 'pending')`).run();
   globalThis.fetch = async () => { calls.push('failed'); return new Response('', { status: 503 }); };

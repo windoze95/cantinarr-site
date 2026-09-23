@@ -106,10 +106,11 @@ export async function reviewFeature(env, id) {
         reason = ?3, reviewed_at = ?4, next_attempt_at = ?4
       WHERE feature_id = ?1 AND attempt_id = ?5
     `).bind(id, review.recommendation, review.reason, reviewedAt, attemptId);
+    let updated;
     if (review.recommendation === 'human') {
-      await completed.run();
+      updated = await completed.run();
     } else {
-      await db.batch([
+      [updated] = await db.batch([
         completed,
         db.prepare(`
           UPDATE features SET status = ?2 WHERE id = ?1 AND status = 'pending'
@@ -118,7 +119,7 @@ export async function reviewFeature(env, id) {
         `).bind(id, review.recommendation === 'approve' ? 'open' : 'declined', attemptId, review.recommendation),
       ]);
     }
-    return true;
+    return updated.meta.changes === 1;
   } catch (error) {
     // Keep the submission pending, and make it eligible for another attempt.
     await db.prepare(`
@@ -142,5 +143,10 @@ export async function reviewPending(env) {
     ORDER BY f.created_at ASC LIMIT ${BACKLOG_BATCH_SIZE}
   `).bind(new Date().toISOString()).all();
   const outcomes = await Promise.allSettled(results.map((row) => reviewFeature(env, row.id)));
+  for (const outcome of outcomes) {
+    if (outcome.status === 'rejected') {
+      console.error('roadmap AI backlog review failed', outcome.reason?.message || 'unknown_error');
+    }
+  }
   return outcomes.filter((result) => result.status === 'fulfilled' && result.value).length;
 }
