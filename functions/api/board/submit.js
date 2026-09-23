@@ -1,6 +1,6 @@
 // POST /api/board/submit — accept a feature idea into the moderation queue.
 // Layered abuse protection: honeypot field, Turnstile (when configured),
-// per-IP daily rate limit, and human review before anything is published.
+// per-IP daily rate limit, and moderation before anything is published.
 
 import {
   LIMITS,
@@ -10,7 +10,7 @@ import {
   ipHash,
   isoSince,
   json,
-  notifyNewSubmission,
+  notifyReviewOutcome,
   readJsonBody,
   verifyTurnstile,
 } from './_util.js';
@@ -52,10 +52,14 @@ export async function onRequestPost(context) {
     db.prepare(`INSERT INTO submission_log (ip_hash) VALUES (?1)`).bind(hash),
   ]);
 
-  notifyNewSubmission(context, env, title, detail);
   if (env.OPENAI_API_KEY) {
-    context.waitUntil(reviewFeature(env, inserted[0].meta.last_row_id).catch((error) =>
-      console.error('roadmap AI review failed', error?.message || 'unknown_error')));
+    context.waitUntil(reviewFeature(context, inserted[0].meta.last_row_id, { notifyOnFailure: true })
+      .catch((error) => {
+        console.error('roadmap AI review failed', error?.message || 'unknown_error');
+        notifyReviewOutcome(context, env, title, 'pending');
+      }));
+  } else {
+    notifyReviewOutcome(context, env, title, 'needs_review');
   }
   return json({ ok: true, queued: true });
 }

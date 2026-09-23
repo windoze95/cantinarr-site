@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
   if (!db) return json({ error: 'board_unconfigured' }, { status: 503 });
   await ensureSchema(db);
   if (env.OPENAI_API_KEY) {
-    context.waitUntil(reviewPending(env).catch((error) =>
+    context.waitUntil(reviewPending(context).catch((error) =>
       console.error('roadmap AI backlog check failed', error?.message || 'unknown_error')));
   }
 
