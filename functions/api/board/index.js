@@ -2,11 +2,17 @@
 // whether the caller's anonymous cookie has voted on each.
 
 import { PUBLIC_STATUSES, ensureSchema, json, readVoterId } from './_util.js';
+import { reviewPending } from './_review.js';
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet(context) {
+  const { request, env } = context;
   const db = env.DB;
   if (!db) return json({ error: 'board_unconfigured' }, { status: 503 });
   await ensureSchema(db);
+  if (env.OPENAI_API_KEY) {
+    context.waitUntil(reviewPending(env).catch((error) =>
+      console.error('roadmap AI backlog check failed', error?.message || 'unknown_error')));
+  }
 
   const voter = readVoterId(request) || '';
   const placeholders = PUBLIC_STATUSES.map((_, i) => `?${i + 2}`).join(', ');
