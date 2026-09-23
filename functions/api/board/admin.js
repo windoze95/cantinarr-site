@@ -27,7 +27,7 @@ export async function onRequestGet(context) {
   if (denied) return denied;
   await ensureSchema(db);
   if (env.OPENAI_API_KEY) {
-    context.waitUntil(reviewPending(env).catch((error) =>
+    context.waitUntil(reviewPending(context).catch((error) =>
       console.error('roadmap AI backlog check failed', error?.message || 'unknown_error')));
   }
 

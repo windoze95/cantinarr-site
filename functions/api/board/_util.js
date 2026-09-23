@@ -149,15 +149,22 @@ export async function readJsonBody(request) {
   }
 }
 
-// Fire-and-forget moderation alert for a newly queued idea, published to a
-// secret ntfy topic (phone push). Runs through waitUntil and swallows
-// errors: notifications must never delay or fail a submission.
-export function notifyNewSubmission(context, env, title, detail) {
+// Publish the outcome to the moderator's phone. A failed or unavailable AI
+// review is reported as pending; a later successful retry can report its final
+// decision. Notifications never delay or fail a submission.
+export function notifyReviewOutcome(context, env, title, outcome, reason = '') {
   if (!env.NTFY_TOPIC) return;
+  const labels = {
+    approved: 'Approved',
+    denied: 'Denied',
+    needs_review: 'Needs review',
+    pending: 'Review pending',
+  };
+  if (!labels[outcome]) return;
   const payload = {
     topic: env.NTFY_TOPIC,
-    title: 'New Cantinarr feature idea',
-    message: detail ? `${title}\n\n${detail.slice(0, 500)}` : title,
+    title: `Cantinarr roadmap: ${labels[outcome]}`,
+    message: reason ? `${title}\n\n${cleanText(reason, 320)}` : title,
     click: 'https://cantinarr.com/roadmap/admin.html',
     tags: ['bulb'],
   };
