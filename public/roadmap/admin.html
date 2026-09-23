@@ -33,6 +33,8 @@
 .mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
 .mod-item .meta.pending { color: var(--signal); }
 .mod-item .detail { color: var(--muted); font-size: .92rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
+.mod-item .review { color: var(--ink); font-size: .88rem; margin-top: 10px; white-space: pre-line; overflow-wrap: anywhere; }
+.mod-item .review strong { color: var(--gold); }
 .mod-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .mod-actions button {
   background: var(--surface-2);
@@ -50,7 +52,7 @@
 <body>
 <main class="mod-wrap">
   <h1>Board moderation</h1>
-  <p class="sub">Approve, reclassify, or remove <a href="/roadmap/">roadmap</a> submissions. Requires the admin token.</p>
+  <p class="sub">GPT-6 Luna reviews new ideas automatically. Handle uncertain ideas and manage the <a href="/roadmap/">roadmap</a> here. Requires the admin token.</p>
   <div class="unlock">
     <input id="token" type="password" placeholder="Admin token" autocomplete="current-password">
     <button id="load" class="btn btn-gold" type="button">Load board</button>
@@ -111,7 +113,7 @@
     return btn;
   }
 
-  function render(features) {
+  function render(features, reviewEnabled) {
     list.textContent = '';
     features.forEach(function (f) {
       var item = make('li', 'mod-item');
@@ -120,6 +122,15 @@
       head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''), f.status + ' · ' + f.votes + ' votes'));
       item.appendChild(head);
       if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+      var review = make('p', 'review');
+      var recommendation = f.review ? {
+        approve: 'Approved', decline: 'Declined', human: 'Needs your review'
+      }[f.review.recommendation] : null;
+      review.appendChild(make('strong', null, recommendation ? 'Luna: ' + recommendation :
+        (!reviewEnabled ? 'Luna review is not configured' :
+          (f.reviewState === 'waiting' ? 'Luna review will retry' : 'Awaiting Luna review'))));
+      if (f.review) review.appendChild(document.createTextNode(' · ' + f.review.reason));
+      item.appendChild(review);
       var actions = make('div', 'mod-actions');
       if (f.status === 'pending') actions.appendChild(actionButton('Approve', f.id, 'approve'));
       if (f.status !== 'open' && f.status !== 'pending') actions.appendChild(actionButton('Reopen', f.id, 'open'));
@@ -137,7 +148,7 @@
     if (!tokenInput.value.trim()) { status.textContent = 'Enter the admin token first.'; return; }
     sessionStorage.setItem('cb_admin', tokenInput.value.trim());
     status.textContent = 'Loading…';
-    api('/api/board/admin').then(function (data) { render(data.features); })
+    api('/api/board/admin').then(function (data) { render(data.features, data.reviewEnabled); })
       .catch(function (err) {
         status.textContent = err.message === 'unauthorized'
           ? 'That token was rejected.'

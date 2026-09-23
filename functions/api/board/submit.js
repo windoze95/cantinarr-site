@@ -14,6 +14,7 @@ import {
   readJsonBody,
   verifyTurnstile,
 } from './_util.js';
+import { reviewFeature } from './_review.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -46,11 +47,15 @@ export async function onRequestPost(context) {
   const human = await verifyTurnstile(env, body.turnstile, request);
   if (!human) return json({ error: 'turnstile_failed' }, { status: 403 });
 
-  await db.batch([
+  const inserted = await db.batch([
     db.prepare(`INSERT INTO features (title, detail, status) VALUES (?1, ?2, 'pending')`).bind(title, detail),
     db.prepare(`INSERT INTO submission_log (ip_hash) VALUES (?1)`).bind(hash),
   ]);
 
   notifyNewSubmission(context, env, title, detail);
+  if (env.OPENAI_API_KEY) {
+    context.waitUntil(reviewFeature(env, inserted[0].meta.last_row_id).catch((error) =>
+      console.error('roadmap AI review failed', error?.message || 'unknown_error')));
+  }
   return json({ ok: true, queued: true });
 }

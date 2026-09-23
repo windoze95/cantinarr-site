@@ -24,6 +24,12 @@ jobs:
       - name: Test documentation publication selection
         run: python3 -m unittest discover -s scripts/tests -v
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+      - name: Test board AI moderation
+        run: node --test scripts/tests/test_board_review.mjs
+
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25'

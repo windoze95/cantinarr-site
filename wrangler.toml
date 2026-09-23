@@ -21,3 +21,4 @@ database_id = "97ac5b9a-dc21-44f3-b816-02516f2fb624"
 #   TURNSTILE_SECRET — Turnstile server-side secret for siteverify
 #   ADMIN_TOKEN      — bearer token for /api/board/admin and /roadmap/admin.html
 #   VOTE_SALT        — random salt for the rate-limiting IP hash
+#   OPENAI_API_KEY   — OpenAI API key for private GPT-6 Luna roadmap reviews

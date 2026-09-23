@@ -24,6 +24,16 @@ const SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
   `CREATE INDEX IF NOT EXISTS submission_ip_time ON submission_log (ip_hash, created_at)`,
+  `CREATE TABLE IF NOT EXISTS feature_reviews (
+    feature_id INTEGER PRIMARY KEY,
+    state TEXT NOT NULL,
+    attempt_id TEXT NOT NULL,
+    next_attempt_at TEXT NOT NULL,
+    recommendation TEXT,
+    reason TEXT,
+    reviewed_at TEXT,
+    FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+  )`,
 ];
 
 // Public statuses are visible on /roadmap/; votable ones accept vote toggles.
