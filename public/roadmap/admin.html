@@ -27,9 +27,15 @@
 .unlock .btn { border: 0; cursor: pointer; font-family: var(--body); }
 #mod-status { color: var(--muted); margin-bottom: 18px; }
 #mod-status:empty { display: none; }
+.mod-sections { display: grid; gap: 34px; }
+.mod-group { padding: 0; }
+.mod-group-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; padding-bottom: 8px; }
+.mod-group-head h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; }
+.mod-group-count { color: var(--gold); font-family: var(--mono); font-size: .88rem; }
+.mod-empty { color: var(--muted); }
 .mod-list { list-style: none; display: grid; gap: 12px; padding: 0; }
 .mod-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
-.mod-item h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: inline; }
+.mod-item h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: inline; overflow-wrap: anywhere; }
 .mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
 .mod-item .meta.pending { color: var(--signal); }
 .mod-item .detail { color: var(--muted); font-size: .92rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
@@ -47,6 +53,22 @@
 }
 .mod-actions button:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); }
 .mod-actions button.danger { color: var(--signal); }
+.shipped-group { background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+.shipped-group summary { display: flex; align-items: center; gap: 18px; cursor: pointer; list-style: none; }
+.shipped-group summary::-webkit-details-marker { display: none; }
+.shipped-group summary::marker { content: ''; }
+.shipped-count { color: var(--gold); font-family: var(--display); font-size: clamp(2.4rem, 7vw, 3.2rem); line-height: 1; font-weight: 620; }
+.shipped-summary-copy { display: grid; line-height: 1.35; }
+.shipped-summary-copy strong { font-family: var(--display); font-size: 1.35rem; font-weight: 600; }
+.shipped-summary-copy span { color: var(--muted); font-size: .9rem; }
+.shipped-summary-copy .hide-copy, .shipped-group[open] .show-copy { display: none; }
+.shipped-group[open] .hide-copy { display: inline; }
+.shipped-group .mod-list { margin-top: 20px; }
+@media (max-width: 600px) {
+  .mod-wrap { padding: 36px 18px 70px; }
+  .mod-item { padding: 16px; }
+  .mod-item .meta { display: block; margin-left: 0; margin-top: 4px; }
+}
 </style>
 </head>
 <body>
@@ -58,7 +80,7 @@
     <button id="load" class="btn btn-gold" type="button">Load board</button>
   </div>
   <p id="mod-status" role="status"></p>
-  <ol id="mod-list" class="mod-list"></ol>
+  <div id="mod-sections" class="mod-sections"></div>
 </main>
 
 <script>
@@ -67,7 +89,8 @@
 
   var tokenInput = document.getElementById('token');
   var status = document.getElementById('mod-status');
-  var list = document.getElementById('mod-list');
+  var sections = document.getElementById('mod-sections');
+  var shippedOpen = false;
   tokenInput.value = sessionStorage.getItem('cb_admin') || '';
 
   function api(path, options) {
@@ -113,34 +136,89 @@
     return btn;
   }
 
-  function render(features, reviewEnabled) {
-    list.textContent = '';
-    features.forEach(function (f) {
-      var item = make('li', 'mod-item');
-      var head = make('div');
-      head.appendChild(make('h2', null, f.title));
-      head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''), f.status + ' · ' + f.votes + ' votes'));
-      item.appendChild(head);
-      if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+  function renderItem(f, reviewEnabled) {
+    var item = make('li', 'mod-item');
+    var head = make('div');
+    head.appendChild(make('h3', null, f.title));
+    head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''),
+      f.status + ' · ' + f.votes + (f.votes === 1 ? ' vote' : ' votes')));
+    item.appendChild(head);
+    if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+    var recommendation = f.review ? {
+      approve: 'Approved', decline: 'Declined',
+      human: f.status === 'pending' ? 'Needs your review' : 'Suggested human review'
+    }[f.review.recommendation] : null;
+    if (f.status === 'pending' || f.review) {
       var review = make('p', 'review');
-      var recommendation = f.review ? {
-        approve: 'Approved', decline: 'Declined', human: 'Needs your review'
-      }[f.review.recommendation] : null;
       review.appendChild(make('strong', null, recommendation ? 'Luna: ' + recommendation :
         (!reviewEnabled ? 'Luna review is not configured' :
           (f.reviewState === 'waiting' ? 'Luna review will retry' : 'Awaiting Luna review'))));
       if (f.review) review.appendChild(document.createTextNode(' · ' + f.review.reason));
       item.appendChild(review);
-      var actions = make('div', 'mod-actions');
-      if (f.status === 'pending') actions.appendChild(actionButton('Approve', f.id, 'approve'));
-      if (f.status !== 'open' && f.status !== 'pending') actions.appendChild(actionButton('Reopen', f.id, 'open'));
-      if (f.status !== 'planned') actions.appendChild(actionButton('Planned', f.id, 'planned'));
-      if (f.status !== 'shipped') actions.appendChild(actionButton('Shipped', f.id, 'shipped'));
-      if (f.status !== 'declined') actions.appendChild(actionButton('Decline', f.id, 'decline', true));
-      actions.appendChild(actionButton('Delete', f.id, 'delete', true));
-      item.appendChild(actions);
-      list.appendChild(item);
+    }
+    var actions = make('div', 'mod-actions');
+    if (f.status === 'pending') actions.appendChild(actionButton('Approve', f.id, 'approve'));
+    if (f.status !== 'open' && f.status !== 'pending') actions.appendChild(actionButton('Reopen', f.id, 'open'));
+    if (f.status !== 'planned') actions.appendChild(actionButton('Planned', f.id, 'planned'));
+    if (f.status !== 'shipped') actions.appendChild(actionButton('Shipped', f.id, 'shipped'));
+    if (f.status !== 'declined') actions.appendChild(actionButton('Decline', f.id, 'decline', true));
+    actions.appendChild(actionButton('Delete', f.id, 'delete', true));
+    item.appendChild(actions);
+    return item;
+  }
+
+  function render(features, reviewEnabled) {
+    sections.textContent = '';
+    var groups = { pending: [], planned: [], open: [], declined: [], shipped: [] };
+    features.forEach(function (f) {
+      if (groups[f.status]) groups[f.status].push(f);
     });
+    function newest(a, b) { return b.createdAt.localeCompare(a.createdAt) || b.id - a.id; }
+    function oldest(a, b) { return a.createdAt.localeCompare(b.createdAt) || a.id - b.id; }
+    function mostVotes(a, b) { return b.votes - a.votes || newest(a, b); }
+    groups.pending.sort(oldest);
+    groups.planned.sort(mostVotes);
+    groups.open.sort(mostVotes);
+    groups.declined.sort(newest);
+    groups.shipped.sort(newest);
+
+    function addGroup(label, items, always) {
+      if (!items.length && !always) return;
+      var group = make('section', 'mod-group');
+      var head = make('div', 'mod-group-head');
+      head.appendChild(make('h2', null, label));
+      head.appendChild(make('span', 'mod-group-count', String(items.length)));
+      group.appendChild(head);
+      if (items.length) {
+        var list = make('ul', 'mod-list');
+        items.forEach(function (f) { list.appendChild(renderItem(f, reviewEnabled)); });
+        group.appendChild(list);
+      } else {
+        group.appendChild(make('p', 'mod-empty', 'No ideas need a decision.'));
+      }
+      sections.appendChild(group);
+    }
+
+    addGroup('Pending review', groups.pending, true);
+    addGroup('Planned', groups.planned);
+    addGroup('Open', groups.open);
+    addGroup('Declined', groups.declined);
+
+    var shipped = make('details', 'shipped-group');
+    shipped.open = shippedOpen;
+    shipped.addEventListener('toggle', function () { shippedOpen = shipped.open; });
+    var summary = make('summary');
+    summary.appendChild(make('strong', 'shipped-count', String(groups.shipped.length)));
+    var summaryCopy = make('span', 'shipped-summary-copy');
+    summaryCopy.appendChild(make('strong', null, 'Shipped'));
+    summaryCopy.appendChild(make('span', 'show-copy', 'Show shipped ideas'));
+    summaryCopy.appendChild(make('span', 'hide-copy', 'Hide shipped ideas'));
+    summary.appendChild(summaryCopy);
+    shipped.appendChild(summary);
+    var shippedList = make('ul', 'mod-list');
+    groups.shipped.forEach(function (f) { shippedList.appendChild(renderItem(f, reviewEnabled)); });
+    shipped.appendChild(shippedList);
+    sections.appendChild(shipped);
     status.textContent = features.length === 0 ? 'Nothing on the board yet.' : '';
   }
 

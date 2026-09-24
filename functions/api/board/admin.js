@@ -57,7 +57,7 @@ export async function onRequestGet(context) {
         reason: row.reason,
         reviewedAt: row.reviewed_at,
       } : null,
-      reviewState: row.review_state || 'awaiting',
+      reviewState: row.review_state || (row.status === 'pending' ? 'awaiting' : null),
     })),
   });
 }
