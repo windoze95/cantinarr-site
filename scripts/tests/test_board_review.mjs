@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import { ensureSchema } from '../../functions/api/board/_util.js';
 import { parseReviewResponse, reviewFeature, reviewPending } from '../../functions/api/board/_review.js';
+import { onRequestGet as adminGet } from '../../functions/api/board/admin.js';
 import { onRequestPost as submit } from '../../functions/api/board/submit.js';
 
 class D1Statement {
@@ -274,6 +275,17 @@ test('Luna moderates new and missed ideas once, and retries failures', async (t)
   assert.equal((await submit(withoutAI)).status, 200);
   await drain();
   assert.equal(notices.at(-1).title, 'Cantinarr roadmap: Needs review');
+
+  const adminResponse = await adminGet({
+    request: new Request('http://localhost/api/board/admin', {
+      headers: { authorization: 'Bearer test-admin-token' },
+    }),
+    env: { ...env, OPENAI_API_KEY: '', ADMIN_TOKEN: 'test-admin-token' },
+  });
+  assert.equal(adminResponse.status, 200);
+  const adminFeatures = (await adminResponse.json()).features;
+  assert.equal(adminFeatures.find((f) => f.title === 'Existing feature').reviewState, null);
+  assert.equal(adminFeatures.find((f) => f.title === 'Manual review notification').reviewState, 'awaiting');
 });
 
 test('invalid or incomplete model output is rejected', () => {
