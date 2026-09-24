@@ -97,7 +97,9 @@
 .vote-btn[aria-pressed="true"] .arrow { color: var(--on-gold); }
 .vote-btn:disabled { opacity: .5; cursor: default; transform: none; }
 
-.shipped-title { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 34px 0 14px; }
+.shipped-title { display: flex; align-items: baseline; gap: 16px; font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 34px 0 14px; }
+.shipped-title[hidden] { display: none; }
+.shipped-count { color: var(--gold); font-size: clamp(2.4rem, 7vw, 3.2rem); font-weight: 620; line-height: 1; }
 
 .suggest-card {
   background: var(--surface);
@@ -191,7 +193,7 @@
     <section aria-label="Feature requests">
       <div id="board-status" role="status">Loading the board…</div>
       <ol id="board-list" class="board-list"></ol>
-      <h2 class="shipped-title" id="shipped-title" hidden>Shipped</h2>
+      <h2 class="shipped-title" id="shipped-title" hidden><span class="shipped-count" id="shipped-count">0</span>Shipped</h2>
       <ol id="shipped-list" class="board-list" aria-labelledby="shipped-title"></ol>
       <p class="board-note">Voting sets a single anonymous cookie so the board remembers which votes are yours. No account, no tracking.</p>
       <noscript><p class="board-note">The board needs JavaScript to load requests and count votes.</p></noscript>
@@ -242,6 +244,7 @@
   var boardStatus = document.getElementById('board-status');
   var boardList = document.getElementById('board-list');
   var shippedTitle = document.getElementById('shipped-title');
+  var shippedCount = document.getElementById('shipped-count');
   var shippedList = document.getElementById('shipped-list');
   var form = document.getElementById('suggest-form');
   var formStatus = document.getElementById('form-status');
@@ -304,6 +307,7 @@
     var shipped = data.features.filter(function (f) { return f.status === 'shipped'; });
     active.forEach(function (f) { boardList.appendChild(renderItem(f)); });
     shipped.forEach(function (f) { shippedList.appendChild(renderItem(f)); });
+    shippedCount.textContent = String(shipped.length);
     shippedTitle.hidden = shipped.length === 0;
     setBoardStatus(active.length === 0 ? 'No open requests yet. Yours could be the first.' : '');
     if (data.siteKey) setupTurnstile(data.siteKey);
