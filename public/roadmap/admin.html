@@ -141,7 +141,7 @@
     var head = make('div');
     head.appendChild(make('h3', null, f.title));
     head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''),
-      f.status + ' · ' + f.votes + (f.votes === 1 ? ' vote' : ' votes')));
+      f.status + ' · ' + f.upvotes + ' up · ' + f.downvotes + ' down'));
     item.appendChild(head);
     if (f.detail) item.appendChild(make('p', 'detail', f.detail));
     var recommendation = f.review ? {
@@ -175,7 +175,7 @@
     });
     function newest(a, b) { return b.createdAt.localeCompare(a.createdAt) || b.id - a.id; }
     function oldest(a, b) { return a.createdAt.localeCompare(b.createdAt) || a.id - b.id; }
-    function mostVotes(a, b) { return b.votes - a.votes || newest(a, b); }
+    function mostVotes(a, b) { return b.upvotes - a.upvotes || newest(a, b); }
     groups.pending.sort(oldest);
     groups.planned.sort(mostVotes);
     groups.open.sort(mostVotes);
