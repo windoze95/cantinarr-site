@@ -27,8 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '25'
-      - name: Test board AI moderation
-        run: node --test scripts/tests/test_board_review.mjs
+      - name: Test board voting and AI moderation
+        run: node --test scripts/tests/test_board_*.mjs
 
       - uses: actions/setup-go@v5
         with:

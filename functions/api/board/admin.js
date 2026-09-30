@@ -34,11 +34,12 @@ export async function onRequestGet(context) {
   const { results } = await db
     .prepare(
       `SELECT f.id, f.title, f.detail, f.status, f.created_at,
-        (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id) AS votes,
+        (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'up') AS upvotes,
+        (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'down') AS downvotes,
         r.state AS review_state, r.recommendation, r.reason, r.reviewed_at
       FROM features f
       LEFT JOIN feature_reviews r ON r.feature_id = f.id
-      ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, votes DESC, f.created_at DESC`
+      ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, upvotes DESC, f.created_at DESC`
     )
     .all();
 
@@ -49,7 +50,9 @@ export async function onRequestGet(context) {
       title: row.title,
       detail: row.detail,
       status: row.status,
-      votes: row.votes,
+      upvotes: row.upvotes,
+      downvotes: row.downvotes,
+      votes: row.upvotes,
       createdAt: row.created_at,
       review: row.review_state === 'completed' ? {
         model: 'gpt-6-luna',
