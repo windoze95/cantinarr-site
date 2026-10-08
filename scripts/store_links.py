@@ -71,12 +71,11 @@ def render(source: str, config: dict) -> str:
             + '        </a>\n'
         )
     if ios_live and android_live:
-        note = ("Want early updates? Join the optional " + link(IOS_BETA, "iPhone beta")
-                + " or " + link(ANDROID_BETA, "Android beta") + ".")
+        note = "Android is available on Google Play. Want early iPhone updates? Join the optional " + link(IOS_BETA, "iPhone beta") + "."
     elif ios_live:
         note = "Want early iPhone updates? Join the optional " + link(IOS_BETA, "iPhone beta") + "."
     elif android_live:
-        note = "Want early Android updates? Join the optional " + link(ANDROID_BETA, "Android beta") + "."
+        note = "Android is available on Google Play."
     else:
         note = "The iPhone and Android betas are open to everyone. No invite needed."
     if not ios_live:
@@ -94,10 +93,9 @@ def render(source: str, config: dict) -> str:
         blocks["android-dialog"] = (
             '    <p class="kicker">Android app</p>\n'
             '    <h2 class="modal-title" id="android-beta-title">Get Cantinarr on Google Play.</h2>\n'
-            '    <p class="modal-body">The public Android app is available on Google Play. Beta testing is optional.</p>\n'
+            '    <p class="modal-body">Download the Android app from Google Play.</p>\n'
             f'    <a class="btn btn-gold" href="{ANDROID_STORE}" target="_blank" rel="noopener">Get on Google Play</a>\n'
-            '    <p class="modal-fine">Want early updates? ' + link(ANDROID_BETA, "Join the Android beta")
-            + '. Connect the app to your own Cantinarr server.</p>\n'
+            '    <p class="modal-fine">Connect the app to your own Cantinarr server.</p>\n'
         )
     else:
         blocks["android-dialog"] = (

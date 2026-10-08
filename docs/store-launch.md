@@ -50,7 +50,7 @@ The intentional opt-in destinations remain:
    platform in beta; never substitute a placeholder URL.
 3. Run `python3 scripts/store_links.py --write`, then review the resulting
    `public/index.html` diff. This updates both hero badges, the final download
-   sentence, optional beta links, and the legacy Android dialog together.
+   sentence, availability copy, and the legacy Android dialog together.
 4. Run `python3 scripts/verify_site.py`,
    `python3 -m unittest discover -s scripts/tests -v` and
    `node --test scripts/tests/test_board_review.mjs`. Inspect phone and desktop
@@ -78,13 +78,15 @@ remote scripts, packages, framework or deployment behavior are introduced.
 
 Keep `/#android-beta` working. Existing apps still link to it. Before the Android
 release it opens the current beta dialog; after release it opens a public-store
-download dialog with a clearly secondary optional beta link. Its ID, close
+download dialog without Android beta enrollment links. Its ID, close
 button, focus behavior, Escape/backdrop handling and fragment cleanup remain.
 
-### Read-only audit: separate future work in the core repository
+### Initial core audit (pre-launch snapshot)
 
-No core code or documentation is changed by this PR. Revisit these when planning
-later link updates; this list does not authorize a campaign or another PR.
+The initial site launch kept these core surfaces unchanged. The Android production
+follow-up corrects the README, shared first-request/Settings sheet, and public
+app/update guides in the core repository. This historical inventory identifies
+what the site-only launch did not change.
 
 - [Root README beta badges and install links](https://github.com/windoze95/cantinarr/blob/ea19d63ec849108d35fec26d5659ca7901f81580/README.md#L17-L18), plus [the app section](https://github.com/windoze95/cantinarr/blob/ea19d63ec849108d35fec26d5659ca7901f81580/README.md#L53-L56)
 - [Public apps guide](https://github.com/windoze95/cantinarr/blob/ea19d63ec849108d35fec26d5659ca7901f81580/docs-site/src/content/docs/use/apps.md#L3-L18)
@@ -102,4 +104,6 @@ consumes the core README, so that is an indirect surface to recheck later.
 Operational beta workflows, release documentation, and hidden settings-search
 aliases remain valid for ongoing testing and should not be blindly replaced.
 
-User beta-to-production communications are deferred until after Apple review.
+Android acquisition now points to production throughout the homepage and legacy
+dialog. iOS remains in App Store review and uses its existing TestFlight link.
+Tester enrollment URLs remain only in intentional program documentation.
