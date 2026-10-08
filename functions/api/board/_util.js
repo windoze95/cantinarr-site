@@ -14,6 +14,7 @@ const SCHEMA_STATEMENTS = [
     feature_id INTEGER NOT NULL,
     voter_id TEXT NOT NULL,
     ip_hash TEXT NOT NULL DEFAULT '',
+    direction TEXT NOT NULL DEFAULT 'up' CHECK (direction IN ('up', 'down')),
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     PRIMARY KEY (feature_id, voter_id)
   )`,
@@ -36,7 +37,7 @@ const SCHEMA_STATEMENTS = [
   )`,
 ];
 
-// Public statuses are visible on /roadmap/; votable ones accept vote toggles.
+// Public statuses are visible on /roadmap/; votable ones accept directional votes.
 export const PUBLIC_STATUSES = ['open', 'planned', 'shipped'];
 export const VOTABLE_STATUSES = ['open', 'planned'];
 
@@ -48,12 +49,34 @@ export const LIMITS = {
   voteInsertsPerIpPerHour: 40,
 };
 
-let schemaReady = false;
+const schemaReady = new WeakMap();
 
 export async function ensureSchema(db) {
-  if (schemaReady) return;
+  if (!schemaReady.has(db)) {
+    const ready = initializeSchema(db).catch((error) => {
+      schemaReady.delete(db);
+      throw error;
+    });
+    schemaReady.set(db, ready);
+  }
+  await schemaReady.get(db);
+}
+
+async function initializeSchema(db) {
   await db.batch(SCHEMA_STATEMENTS.map((sql) => db.prepare(sql)));
-  schemaReady = true;
+  const hasDirection = async () => {
+    const { results } = await db.prepare('PRAGMA table_info(votes)').all();
+    return results.some((column) => column.name === 'direction');
+  };
+  if (await hasDirection()) return;
+  // Additive upgrade: old votes stay upvotes with the same voter/IP/time.
+  // Different worker isolates may race; only accept an error if another
+  // initializer really added the column. Other failures remain retryable.
+  try {
+    await db.prepare("ALTER TABLE votes ADD COLUMN direction TEXT NOT NULL DEFAULT 'up' CHECK (direction IN ('up', 'down'))").run();
+  } catch (error) {
+    if (!(await hasDirection())) throw error;
+  }
 }
 
 export function json(data, init = {}) {

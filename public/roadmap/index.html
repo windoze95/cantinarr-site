@@ -74,12 +74,16 @@
 .chip-planned { color: var(--requested); border: 1px solid color-mix(in srgb, var(--requested) 45%, transparent); }
 .chip-shipped { color: var(--available); border: 1px solid color-mix(in srgb, var(--available) 45%, transparent); }
 
+.vote-controls { display: grid; gap: 8px; flex-shrink: 0; }
+.board-item > .item-body { min-width: 0; }
+.board-item h3 { overflow-wrap: anywhere; }
 .vote-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1px;
   min-width: 62px;
+  min-height: 52px;
   padding: 10px 10px 8px;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -91,11 +95,16 @@
   cursor: pointer;
   transition: border-color .25s, background .25s, transform .25s;
 }
+.vote-btn .vote-label { font-size: .65rem; letter-spacing: .04em; }
 .vote-btn .arrow { font-size: .72rem; color: var(--gold); line-height: 1; }
 .vote-btn:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); transform: translateY(-2px); }
 .vote-btn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
 .vote-btn[aria-pressed="true"] .arrow { color: var(--on-gold); }
-.vote-btn:disabled { opacity: .5; cursor: default; transform: none; }
+.vote-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+.vote-btn:disabled { opacity: .7; cursor: default; transform: none; }
+
+@media (max-width: 600px) { .board-item { gap: 12px; padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { .vote-btn { transition: none; } .vote-btn:hover { transform: none; } }
 
 .shipped-title { display: flex; align-items: baseline; gap: 16px; font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 34px 0 14px; }
 .shipped-title[hidden] { display: none; }
@@ -184,7 +193,7 @@
   <div class="wrap">
     <p class="kicker">Roadmap</p>
     <h1>You call the next&nbsp;round.</h1>
-    <p class="lede">Request a feature, or vote for the ones you want. No account, no sign-in. One tap and you’re counted.</p>
+    <p class="lede">Request a feature, or vote up or down on ideas. Upvotes and downvotes are counted separately. No account, no sign-in.</p>
   </div>
 </header>
 
@@ -195,7 +204,7 @@
       <ol id="board-list" class="board-list"></ol>
       <h2 class="shipped-title" id="shipped-title" hidden><span class="shipped-count" id="shipped-count">0</span>Shipped</h2>
       <ol id="shipped-list" class="board-list" aria-labelledby="shipped-title"></ol>
-      <p class="board-note">Voting sets a single anonymous cookie so the board remembers which votes are yours. No account, no tracking.</p>
+      <p class="board-note">Choose one vote per idea. Tap the other direction to switch, or tap your selected vote to remove it. An anonymous cookie remembers your votes. No account, no tracking.</p>
       <noscript><p class="board-note">The board needs JavaScript to load requests and count votes.</p></noscript>
     </section>
 
@@ -250,6 +259,8 @@
   var formStatus = document.getElementById('form-status');
   var turnstileWidgetId = null;
   var turnstileReady = false;
+  var activeVoteRequests = 0;
+  var refreshOnVoteCompletion = false;
 
   function make(tag, className, text) {
     var node = document.createElement(tag);
@@ -262,30 +273,86 @@
     var item = make('li', 'board-item');
     var votable = feature.status === 'open' || feature.status === 'planned';
 
-    var btn = make('button', 'vote-btn');
-    btn.type = 'button';
-    btn.setAttribute('aria-pressed', feature.voted ? 'true' : 'false');
-    btn.setAttribute('aria-label', 'Vote for “' + feature.title + '”, ' + feature.votes + ' votes');
-    btn.disabled = !votable;
-    btn.appendChild(make('span', 'arrow', '▲'));
-    var count = make('span', 'count', String(feature.votes));
-    btn.appendChild(count);
-    if (votable) {
-      btn.addEventListener('click', function () {
-        btn.disabled = true;
-        postJson('/api/board/vote', { id: feature.id }).then(function (result) {
-          count.textContent = String(result.votes);
-          btn.setAttribute('aria-pressed', result.voted ? 'true' : 'false');
-        }).catch(function (err) {
-          setBoardStatus(err && err.code === 'rate_limited'
-            ? 'Easy there, that’s a lot of votes for one hour. Try again later.'
-            : 'That vote didn’t go through. Try again in a moment.');
-        }).finally(function () { btn.disabled = false; });
+    var controls = make('div', 'vote-controls');
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'Votes for “' + feature.title + '”');
+    var buttons = {};
+    var counts = {};
+    var busy = false;
+
+    function updateVotes(result) {
+      if (!Number.isSafeInteger(result.upvotes) || result.upvotes < 0 ||
+          !Number.isSafeInteger(result.downvotes) || result.downvotes < 0 ||
+          [null, 'up', 'down'].indexOf(result.vote) === -1) throw new Error('invalid_vote_reply');
+      feature.vote = result.vote;
+      feature.upvotes = result.upvotes;
+      feature.downvotes = result.downvotes;
+      ['up', 'down'].forEach(function (direction) {
+        var total = direction === 'up' ? result.upvotes : result.downvotes;
+        var selected = result.vote === direction;
+        counts[direction].textContent = String(total);
+        buttons[direction].setAttribute('aria-pressed', selected ? 'true' : 'false');
+        buttons[direction].setAttribute('aria-label',
+          (selected ? 'Remove ' : '') + direction + 'vote for “' + feature.title + '”, ' +
+          total + (total === 1 ? ' ' + direction + 'vote' : ' ' + direction + 'votes'));
       });
     }
-    item.appendChild(btn);
 
-    var body = make('div');
+    ['up', 'down'].forEach(function (direction) {
+      var btn = make('button', 'vote-btn');
+      btn.type = 'button';
+      btn.disabled = !votable;
+      var arrow = make('span', 'arrow', direction === 'up' ? '▲' : '▼');
+      arrow.setAttribute('aria-hidden', 'true');
+      btn.appendChild(arrow);
+      counts[direction] = make('span', 'count');
+      btn.appendChild(counts[direction]);
+      btn.appendChild(make('span', 'vote-label', direction === 'up' ? 'Up' : 'Down'));
+      buttons[direction] = btn;
+      if (votable) btn.addEventListener('click', function () {
+        if (busy) return;
+        busy = true;
+        activeVoteRequests += 1;
+        buttons.up.disabled = buttons.down.disabled = true;
+        controls.setAttribute('aria-busy', 'true');
+        var desired = feature.vote === direction ? null : direction;
+        postJson('/api/board/vote', { id: feature.id, vote: desired }).then(function (result) {
+          updateVotes(result);
+          setBoardStatus('');
+        }).catch(function (err) {
+          // A lost response may follow a committed write. Reconcile before
+          // allowing another tap; never guess or increment a local counter.
+          return getBoard().then(function (data) {
+            var fresh = data.features.find(function (f) { return f.id === feature.id; });
+            if (fresh) {
+              updateVotes(fresh);
+              votable = fresh.status === 'open' || fresh.status === 'planned';
+            } else { votable = false; }
+            setBoardStatus(err && err.code === 'rate_limited'
+              ? 'Easy there, that’s a lot of votes for one hour. Try again later.'
+              : 'Couldn’t confirm that vote. The counts have been refreshed. Please check your selection.');
+          }).catch(function () {
+            // Keep this item locked until a reload can confirm its state.
+            votable = false;
+            setBoardStatus('Couldn’t confirm your vote or refresh the counts. Reload the board before trying again.');
+          });
+        }).finally(function () {
+          busy = false;
+          buttons.up.disabled = buttons.down.disabled = !votable;
+          controls.setAttribute('aria-busy', 'false');
+          activeVoteRequests -= 1;
+          if (refreshOnVoteCompletion && activeVoteRequests === 0) {
+            refreshOnVoteCompletion = false;
+            loadBoard();
+          }
+        });
+      });
+      controls.appendChild(btn);
+    });
+    updateVotes(feature);
+    item.appendChild(controls);
+
+    var body = make('div', 'item-body');
     var head = make('div', 'item-head');
     head.appendChild(make('h3', null, feature.title));
     if (feature.status === 'planned') head.appendChild(make('span', 'status-chip chip-planned', 'Planned'));
@@ -382,12 +449,27 @@
     }).finally(function () { button.disabled = false; });
   });
 
-  fetch('/api/board').then(function (res) {
-    if (!res.ok) throw new Error('board_unavailable');
-    return res.json();
-  }).then(render).catch(function () {
-    setBoardStatus('Couldn’t load the board. Check back soon, or drop your idea on GitHub in the meantime.');
+  function getBoard() {
+    return fetch('/api/board', { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) throw new Error('board_unavailable');
+      return res.json();
+    });
+  }
+
+  function loadBoard() {
+    return getBoard().then(render).catch(function () {
+      setBoardStatus('Couldn’t load the board. Check back soon, or drop your idea on GitHub in the meantime.');
+    });
+  }
+
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    // Restoring a cached page must not replace locked controls with a stale
+    // pre-write snapshot while its outstanding vote is still committing.
+    if (activeVoteRequests) refreshOnVoteCompletion = true;
+    else loadBoard();
   });
+  loadBoard();
 })();
 </script>
 </body>
