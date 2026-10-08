@@ -11,6 +11,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from store_links import check as check_store_links
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
@@ -157,7 +159,7 @@ def png_dimensions(path: Path) -> tuple[int, int]:
 
 
 def verify() -> list[str]:
-    errors: list[str] = []
+    errors: list[str] = check_store_links()
     if not PUBLIC.is_dir():
         return ["public/ is missing"]
 

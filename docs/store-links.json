@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "released": false,
+    "store_url": "https://apps.apple.com/app/id6744379934"
+  },
+  "android": {
+    "released": true,
+    "store_url": "https://play.google.com/store/apps/details?id=codes.julian.cantinarr"
+  }
+}
