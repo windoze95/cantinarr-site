@@ -79,13 +79,16 @@ def render(source: str, config: dict) -> str:
         note = "Want early Android updates? Join the optional " + link(ANDROID_BETA, "Android beta") + "."
     else:
         note = "The iPhone and Android betas are open to everyone. No invite needed."
+    if not ios_live:
+        note = "iOS is in App Store review. Try the iPhone and iPad beta on TestFlight. " + note
+    ios_review = " iOS is in App Store review." if not ios_live else ""
     blocks = {
         "hero": '      <div class="stores rise d4">\n' + ''.join(badges) + '      </div>\n'
                 + f'      <p class="stores-note rise d4">{note}</p>\n',
         "get": '    <p class="lede center reveal">Get Cantinarr on '
                + link(urls[0], "the App Store for iPhone and iPad" if ios_live else "TestFlight for iPhone and iPad (beta)")
                + " or " + link(urls[1], "Google Play for Android" + ("" if android_live else " (beta)"))
-               + '. Stand up the server with the compose file above, or try the demo first.</p>\n',
+               + '.' + ios_review + ' Stand up the server with the compose file above, or try the demo first.</p>\n',
     }
     if android_live:
         blocks["android-dialog"] = (

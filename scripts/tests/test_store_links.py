@@ -40,6 +40,8 @@ class StoreLinkTests(unittest.TestCase):
                     get = self.region(output, "get")
                     self.assertEqual(re.findall(r'<a href="([^"]+)"', get), primary)
                     self.assertEqual(get.count("(beta)"), 2 - int(ios_live) - int(android_live))
+                    for region in (hero, get):
+                        self.assertEqual("iOS is in App Store review." in region, not ios_live)
                     dialog = self.region(output, "android-dialog")
                     expected_android = links.ANDROID_STORE if android_live else links.ANDROID_BETA
                     self.assertIn(f'class="btn btn-gold" href="{expected_android}"', dialog)
