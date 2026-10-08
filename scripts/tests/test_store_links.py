@@ -45,10 +45,13 @@ class StoreLinkTests(unittest.TestCase):
                     dialog = self.region(output, "android-dialog")
                     expected_android = links.ANDROID_STORE if android_live else links.ANDROID_BETA
                     self.assertIn(f'class="btn btn-gold" href="{expected_android}"', dialog)
-                    self.assertIn(links.ANDROID_BETA, dialog)
-                    if ios_live or android_live:
+                    if android_live:
+                        self.assertNotIn(links.ANDROID_BETA, output)
+                        self.assertNotIn("Android beta", output)
+                    else:
+                        self.assertIn(links.ANDROID_BETA, dialog)
+                    if ios_live:
                         self.assertIn(links.IOS_BETA, hero)
-                        self.assertIn(links.ANDROID_BETA, hero)
                         self.assertIn("optional", hero)
                     note = re.search(r'<p class="stores-note rise d4">(.*?)</p>', hero).group(1)
                     if ios_live and not android_live:
