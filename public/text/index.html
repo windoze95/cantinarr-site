@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cantinarr | Text edition</title>
+  <meta name="description" content="Media requests and server management. Cantinarr setup and download links for text browsers.">
+  <link rel="canonical" href="https://cantinarr.com/">
+</head>
+<body>
+  <header id="top">
+    <p><a href="/">Cantinarr home</a> / Text edition</p>
+    <h1>Cantinarr</h1>
+    <p>Media requests and server management in one app.</p>
+    <p>For Lynx, w3m, and Links.</p>
+    <nav aria-label="On this page">
+      <ul>
+        <li><a href="#features">What it does</a></li>
+        <li><a href="#selfhost">Run the server</a></li>
+        <li><a href="#get">Get the app</a></li>
+        <li><a href="#links">Project links</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="features">
+      <h2>What it does</h2>
+      <p>Browse movies, shows, books, and music. Request something, follow its progress, and get notified when it is ready. Manage your media services and investigate stuck downloads from your phone or browser.</p>
+      <ul>
+        <li>Let your household request titles, with approval rules you choose.</li>
+        <li>See what is available, requested, or downloading.</li>
+        <li>Manage Radarr, Sonarr, Chaptarr, Lidarr, and download clients.</li>
+        <li>Inspect service messages and review fixes for stuck imports.</li>
+        <li>Use your own server or NAS. Cantinarr is free and open source under AGPL-3.0.</li>
+      </ul>
+    </section>
+
+    <section id="selfhost">
+      <h2>Run the server</h2>
+      <p>Cantinarr needs a server. The phone apps connect to it.</p>
+      <ol>
+        <li>Save the following as <code>compose.yml</code> on a machine running Docker.</li>
+        <li>Run <code>docker compose up -d</code> from that directory.</li>
+        <li>Open <code>http://your-server:8585</code> in a graphical browser and follow the setup wizard.</li>
+        <li>Connect your media services, then connect the app to your server.</li>
+      </ol>
+      <pre><code>services:
+  cantinarr:
+    image: ghcr.io/windoze95/cantinarr:latest
+    ports:
+      - "8585:8585"
+    volumes:
+      - ./config:/config
+    environment:
+      # Optional push notifications
+      - CANTINARR_PUSH_GATEWAY_URL=https://push.cantinarr.com
+    restart: unless-stopped</code></pre>
+      <p><a href="https://docs.cantinarr.com/start/quickstart/">Read the setup guide</a> for the full instructions.</p>
+      <h3>Optional AI features</h3>
+      <p>You can connect an AI provider for media requests, service management, and proposed repairs. Browsing, requesting, and service management work without one.</p>
+    </section>
+
+    <section id="get">
+      <h2>Get the app</h2>
+      <ul>
+        <li><a href="https://testflight.apple.com/join/bCPDwCsD">TestFlight for iPhone and iPad (beta)</a>. iOS is in App Store review.</li>
+        <li><a href="https://play.google.com/store/apps/details?id=codes.julian.cantinarr">Google Play for Android</a>.</li>
+        <li>Use the web app in a graphical browser at your server address.</li>
+      </ul>
+      <p><a href="https://demo.cantinarr.com">Try the live demo</a> before installing. The demo and the Cantinarr app need JavaScript; this page does not.</p>
+    </section>
+
+    <section id="links">
+      <h2>Project links</h2>
+      <ul>
+        <li><a href="https://docs.cantinarr.com">Documentation</a></li>
+        <li><a href="https://github.com/windoze95/cantinarr">Source code on GitHub</a></li>
+        <li><a href="https://github.com/windoze95/cantinarr/releases">Releases</a></li>
+        <li><a href="https://github.com/windoze95/cantinarr/issues">Report a bug</a></li>
+        <li><a href="/roadmap/">Roadmap</a>. The board and voting require JavaScript.</li>
+        <li><a href="https://discord.gg/zAgRwGwmVB">Discord</a></li>
+        <li><a href="https://github.com/windoze95/cantinarr/blob/main/docs/privacy-policy.md">Privacy policy</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <hr>
+    <p><a href="#top">Back to top</a> | <a href="/">Graphical homepage</a></p>
+    <p>Copyright 2026 Julian Dice. Cantinarr is licensed under AGPL-3.0.</p>
+  </footer>
+</body>
+</html>

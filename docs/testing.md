@@ -66,3 +66,42 @@ Legacy `{ "id": 123 }` POSTs retain upvote-toggle behavior for cached pages.
 Legacy `votes` and `voted` response fields mean **upvotes only** and **selected
 upvote only**, never total participation or net score. Old cached pages show
 only upvotes until reloaded. Production data is not downgraded or rebuilt.
+
+## Text-browser edition
+
+`/text/` is a separate, static HTML edition for Lynx, w3m, Links, and browsers
+with CSS or JavaScript disabled. It includes product information, a complete
+Compose example, reviewed app destinations, and project links. Keep its store
+links and beta labels in sync with `docs/store-links.json` when a platform's
+release state changes. `python3 scripts/verify_site.py` checks its navigation,
+setup, store destinations, and absence of visual or script dependencies.
+
+Serve `public/` with `python3 -m http.server 8790 --directory public`, then run
+`lynx -dump -width=80 http://127.0.0.1:8790/text/` or
+`w3m -dump -cols 80 http://127.0.0.1:8790/text/`. Inspect heading order, numbered
+links, setup commands, and Compose indentation. Check a narrower terminal too.
+In an interactive terminal browser, follow the section links, return to the top,
+and follow the homepage link. The graphical homepage must expose a direct
+Text edition link and remain readable with JavaScript disabled. The demo/app
+and roadmap board are JavaScript applications; the text page explains this
+before sending users to them. Terminal support covers the marketing page and
+setup instructions, not a terminal UI for the app or voting API.
+
+## Media shelf and request walkthrough
+
+Serve `public/` locally. Check the homepage at 1440, 800, 390, and 320 pixels,
+plus a short landscape viewport. The illustrated jackets link to the matching
+media sections; on phones the shelf scrolls horizontally. Main-page scrolling
+stays native. Browse, Request, and Ready links jump to their narrative steps,
+and the highlighted link, example request status, and progress line agree with
+the visible step. The final app view shows the title and availability controls.
+The request slip demonstrates the flow alongside real app screens.
+
+Check reduced motion (no shelf movement, smooth scrolling, or fades), JavaScript
+disabled (headings, navigation, disclosure content, setup, and downloads remain
+usable), keyboard focus, Menu close on Escape/outside click/link selection,
+clipboard success and denied access, and the legacy `/#android-beta` dialog.
+On short screens the product view scrolls normally instead of staying fixed.
+The homepage stylesheet is isolated from roadmap/admin/404 styling. New
+stylesheet and script filenames must change before a later deployed edit,
+because `/static/*` responses are cached immutably.
