@@ -7,7 +7,7 @@
 <meta name="description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <link rel="canonical" href="https://cantinarr.com/roadmap/">
 <meta property="og:site_name" content="Cantinarr">
-<meta property="og:title" content="Cantinarr roadmap: you call the next round.">
+<meta property="og:title" content="Cantinarr roadmap and feature requests">
 <meta property="og:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <meta property="og:url" content="https://cantinarr.com/roadmap/">
 <meta property="og:type" content="website">
@@ -16,190 +16,123 @@
 <meta property="og:image:height" content="500">
 <meta property="og:image:alt" content="Cantinarr: discover, request, manage, and repair.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Cantinarr roadmap: you call the next round.">
+<meta name="twitter:title" content="Cantinarr roadmap and feature requests">
 <meta name="twitter:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
 <meta name="twitter:image" content="https://cantinarr.com/static/og-afe0b181.png">
 <meta name="twitter:image:alt" content="Cantinarr: discover, request, manage, and repair.">
 <meta name="theme-color" content="#0C0805">
 <link rel="icon" href="/static/favicon.png?v=3" type="image/png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-<link rel="preload" href="/static/fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/schibsted-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/site.css?v=mobile-nav-1">
+<link rel="stylesheet" href="/static/reel-v4.css">
+<link rel="stylesheet" href="/static/roadmap-v1.css">
 <script src="/static/nav-menu-v1.js" defer></script>
-<style>
-.board-hero { padding: 72px 0 24px; position: relative; z-index: 1; }
-.board-hero h1 {
-  font-family: var(--display);
-  font-optical-sizing: auto;
-  font-weight: 620;
-  font-size: clamp(2.1rem, 4.4vw, 3.2rem);
-  line-height: 1.08;
-  letter-spacing: -.01em;
-  margin-bottom: 18px;
-}
-.board-hero .lede { margin-bottom: 26px; }
-.board-wrap { padding: 26px 0 90px; position: relative; z-index: 1; }
-.board-cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 26px; align-items: start; }
-@media (max-width: 900px) { .board-cols { grid-template-columns: 1fr; } }
-
-.board-note { color: var(--quiet); font-size: .9rem; margin-top: 14px; }
-#board-status { color: var(--muted); font-size: .98rem; padding: 8px 2px 18px; }
-#board-status:empty { display: none; }
-
-.board-list { list-style: none; display: grid; gap: 14px; }
-.board-item {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px 22px;
-}
-.board-item h3 { font-family: var(--display); font-weight: 600; font-size: 1.18rem; letter-spacing: .005em; }
-.board-item .detail { color: var(--muted); font-size: .95rem; margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
-.board-item .item-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-
-.status-chip {
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: .66rem;
-  text-transform: uppercase;
-  letter-spacing: .14em;
-  border-radius: 999px;
-  padding: 3px 10px;
-  white-space: nowrap;
-}
-.chip-planned { color: var(--requested); border: 1px solid color-mix(in srgb, var(--requested) 45%, transparent); }
-.chip-shipped { color: var(--available); border: 1px solid color-mix(in srgb, var(--available) 45%, transparent); }
-
-.vote-controls { display: grid; gap: 8px; flex-shrink: 0; }
-.board-item > .item-body { min-width: 0; }
-.board-item h3 { overflow-wrap: anywhere; }
-.vote-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  min-width: 62px;
-  min-height: 52px;
-  padding: 10px 10px 8px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--ink);
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: 1.02rem;
-  cursor: pointer;
-  transition: border-color .25s, background .25s, transform .25s;
-}
-.vote-btn .vote-label { font-size: .65rem; letter-spacing: .04em; }
-.vote-btn .arrow { font-size: .72rem; color: var(--gold); line-height: 1; }
-.vote-btn:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); transform: translateY(-2px); }
-.vote-btn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
-.vote-btn[aria-pressed="true"] .arrow { color: var(--on-gold); }
-.vote-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
-.vote-btn:disabled { opacity: .7; cursor: default; transform: none; }
-
-@media (max-width: 600px) { .board-item { gap: 12px; padding: 16px; } }
-@media (prefers-reduced-motion: reduce) { .vote-btn { transition: none; } .vote-btn:hover { transform: none; } }
-
-.shipped-title { display: flex; align-items: baseline; gap: 16px; font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 34px 0 14px; }
-.shipped-title[hidden] { display: none; }
-.shipped-count { color: var(--gold); font-size: clamp(2.4rem, 7vw, 3.2rem); font-weight: 620; line-height: 1; }
-
-.suggest-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 26px 24px;
-  position: sticky;
-  top: 84px;
-}
-@media (max-width: 900px) { .suggest-card { position: static; } }
-.suggest-card h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin-bottom: 6px; }
-.suggest-card .sub { color: var(--muted); font-size: .92rem; margin-bottom: 18px; }
-.suggest-card label { display: block; font-family: var(--mono); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .16em; color: var(--gold); margin: 14px 0 6px; }
-.suggest-card label .opt { color: var(--quiet); text-transform: none; letter-spacing: normal; }
-.suggest-card input[type="text"],
-.suggest-card textarea {
-  width: 100%;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--ink);
-  font-family: var(--body);
-  font-size: .98rem;
-  padding: 11px 13px;
-}
-.suggest-card textarea { min-height: 110px; resize: vertical; }
-.suggest-card input:focus-visible, .suggest-card textarea:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
-.suggest-card .btn { margin-top: 18px; border: 0; cursor: pointer; font-family: var(--body); }
-.suggest-card .fine { color: var(--quiet); font-size: .82rem; margin-top: 14px; line-height: 1.5; }
-#turnstile-slot { margin-top: 16px; }
-#turnstile-slot:empty { display: none; }
-#form-status { font-size: .92rem; margin-top: 12px; }
-#form-status.ok { color: var(--available); }
-#form-status.err { color: var(--signal); }
-.hp { position: absolute; left: -9999px; top: -9999px; height: 1px; width: 1px; overflow: hidden; }
-</style>
 </head>
-<body>
-
-<div class="lamp lamp-hero" aria-hidden="true"></div>
-
-<nav class="site-nav" aria-label="Primary navigation">
-  <div class="wrap nav-row">
-    <a class="brand" href="/">
-      <img src="/static/logo.png" alt="" width="30" height="30">
-      <span class="wordmark">Cantin<span class="arr">arr</span></span>
-    </a>
-    <div class="nav-links">
-      <a href="/#features">Features</a>
-      <a href="/#selfhost">Self-host</a>
-      <a class="docs" href="https://docs.cantinarr.com">Docs</a>
-      <a href="/roadmap/" aria-current="page">Roadmap</a>
-      <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Demo</a>
-      <a class="dc" href="https://discord.gg/zAgRwGwmVB" target="_blank" rel="noopener" aria-label="Cantinarr on Discord">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
-      </a>
-      <a class="gh" href="https://github.com/windoze95/cantinarr" aria-label="Cantinarr on GitHub">
-        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-      </a>
-    </div>
-    <details class="mobile-nav">
-      <summary>
-        Menu
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3.5 6 4.5 4 4.5-4"/></svg>
-      </summary>
-      <div class="mobile-nav-panel">
-        <a href="/#features">Features</a>
-        <a href="/#selfhost">Self-host</a>
-        <a href="https://docs.cantinarr.com">Docs</a>
-        <a href="/roadmap/" aria-current="page">Roadmap</a>
-        <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Live demo</a>
-        <div class="mobile-nav-community">
-          <a href="https://discord.gg/zAgRwGwmVB" target="_blank" rel="noopener">Discord</a>
-          <a href="https://github.com/windoze95/cantinarr">GitHub</a>
+<body class="roadmap-page">
+<a class="skip-link" href="#main">Skip to content</a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <div class="wrap nav-row">
+        <a class="brand" href="/">
+          <img src="/static/logo.png" alt="" width="30" height="30" />
+          <span class="wordmark">Cantin<span class="arr">arr</span></span>
+        </a>
+        <div class="nav-links">
+          <a href="/#features">Features</a>
+          <a href="/#selfhost">Self-host</a>
+          <a class="docs" href="https://docs.cantinarr.com">Docs</a>
+          <a href="/roadmap/" aria-current="page">Roadmap</a>
+          <a href="https://demo.cantinarr.com" target="_blank" rel="noopener"
+            >Demo</a
+          >
+          <a
+            class="dc"
+            href="https://discord.gg/zAgRwGwmVB"
+            target="_blank"
+            rel="noopener"
+            aria-label="Cantinarr on Discord"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+              />
+            </svg>
+          </a>
+          <a
+            class="gh"
+            href="https://github.com/windoze95/cantinarr"
+            aria-label="Cantinarr on GitHub"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              width="20"
+              height="20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+              />
+            </svg>
+          </a>
         </div>
+        <details class="mobile-nav">
+          <summary>
+            Menu
+            <svg
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              aria-hidden="true"
+            >
+              <path d="m3.5 6 4.5 4 4.5-4" />
+            </svg>
+          </summary>
+          <div class="mobile-nav-panel">
+            <a href="/#features">Features</a>
+            <a href="/#selfhost">Self-host</a>
+            <a href="https://docs.cantinarr.com">Docs</a>
+            <a href="/roadmap/" aria-current="page">Roadmap</a>
+            <a href="https://demo.cantinarr.com" target="_blank" rel="noopener"
+              >Live demo</a
+            >
+            <div class="mobile-nav-community">
+              <a
+                href="https://discord.gg/zAgRwGwmVB"
+                target="_blank"
+                rel="noopener"
+                >Discord</a
+              >
+              <a href="https://github.com/windoze95/cantinarr">GitHub</a>
+            </div>
+          </div>
+        </details>
       </div>
-    </details>
-  </div>
-</nav>
-
-<header class="board-hero">
-  <div class="wrap">
-    <p class="kicker">Roadmap</p>
-    <h1>You call the next&nbsp;round.</h1>
-    <p class="lede">Request a feature, or vote up or down on ideas. Upvotes and downvotes are counted separately. No account, no sign-in.</p>
-  </div>
-</header>
-
-<main class="board-wrap">
-  <div class="wrap board-cols">
+    </nav>
+<main id="main">
+  <header class="board-hero">
+    <div class="page-width board-intro">
+      <div>
+        <p class="board-eyebrow">Roadmap</p>
+        <h1>What’s next?</h1>
+      </div>
+      <div class="board-lede">
+        <p>Request a feature, or vote up or down on ideas. No account, no sign-in.</p>
+        <a class="board-jump" href="#suggest">Suggest a feature <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <div class="page-width board-cols">
     <section aria-label="Feature requests">
+      <h2 class="board-heading">Open for votes</h2>
       <div id="board-status" role="status">Loading the board…</div>
       <ol id="board-list" class="board-list"></ol>
       <h2 class="shipped-title" id="shipped-title" hidden><span class="shipped-count" id="shipped-count">0</span>Shipped</h2>
@@ -228,24 +161,33 @@
     </section>
   </div>
 </main>
-
-<footer class="site-footer">
-  <div class="wrap foot-row">
-    <div>
-      <a class="brand" href="/"><img src="/static/logo.png" alt="" width="26" height="26"><span class="wordmark">Cantin<span class="arr">arr</span></span></a>
-      <p class="foot-tag">Discover · Request · Manage · Repair</p>
-    </div>
-    <div class="foot-links">
-      <a href="https://github.com/windoze95/cantinarr" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://discord.gg/zAgRwGwmVB" target="_blank" rel="noopener">Discord</a>
-      <a href="https://github.com/windoze95/cantinarr/issues" target="_blank" rel="noopener">Issues</a>
-      <a href="https://github.com/windoze95/cantinarr/blob/main/docs/privacy-policy.md" target="_blank" rel="noopener">Privacy</a>
-      <a href="https://demo.cantinarr.com" target="_blank" rel="noopener">Live demo</a>
-    </div>
-  </div>
-  <div class="wrap foot-small">© 2026 Julian Dice · Open source under AGPL-3.0 · No ads, no analytics, no tracking. Not here, not in the app.</div>
-</footer>
-
+    <footer class="site-footer page-width">
+      <div class="footer-brand">
+        <a class="brand" href="/"
+          ><img src="/static/logo.png" alt="" width="36" height="36" /><span
+            class="wordmark"
+            >Cantinarr</span
+          ></a
+        >
+        <p>Built for the server in the other room.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://docs.cantinarr.com">Documentation</a
+        ><a href="https://github.com/windoze95/cantinarr">Source code</a
+        ><a href="https://discord.gg/zAgRwGwmVB">Discord</a
+        ><a href="/roadmap/">Roadmap</a><a href="/text/">Text-only edition</a
+        ><a
+          href="https://github.com/windoze95/cantinarr/blob/main/docs/privacy-policy.md"
+          >Privacy</a
+        >
+      </nav>
+      <p class="footer-license">
+        Free and open source under
+        <a href="https://github.com/windoze95/cantinarr/blob/main/LICENSE"
+          >AGPL-3.0</a
+        >.
+      </p>
+    </footer>
 <script>
 (function () {
   'use strict';
