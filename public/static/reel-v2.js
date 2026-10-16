@@ -60,6 +60,10 @@
     currentStep = active;
     stage.setAttribute("data-active", String(active));
     status.textContent = labels[active];
+    var notification = stage.querySelector(".push-notice");
+    if (notification) {
+      notification.setAttribute("aria-hidden", String(active !== 2));
+    }
     controls.forEach(function (link, index) {
       if (index === active) {
         link.setAttribute("aria-current", "step");
