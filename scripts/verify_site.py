@@ -11,12 +11,12 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from store_links import check as check_store_links
+from store_links import ANDROID_BETA, CONFIG, IOS_BETA, check as check_store_links, validate as validate_store_links
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
-EXPECTED_TOP_LEVEL = {"404.html", "_headers", "index.html", "roadmap", "site.css", "static"}
+EXPECTED_TOP_LEVEL = {"404.html", "_headers", "index.html", "roadmap", "site.css", "static", "text"}
 REQUIRED_INDEX_META = {
     "description",
     "og:description",
@@ -231,6 +231,51 @@ def verify() -> list[str]:
     roadmap = documents.get((PUBLIC / "roadmap/index.html").resolve())
     if roadmap and roadmap.canonical != "https://cantinarr.com/roadmap/":
         fail(errors, f"roadmap/index.html: canonical URL is {roadmap.canonical!r}")
+
+    text_page = documents.get((PUBLIC / "text/index.html").resolve())
+    if not text_page:
+        fail(errors, "text/index.html: terminal-browser edition is missing")
+    else:
+        text_source = text_page.source.read_text(encoding="utf-8")
+        if re.search(r"<(?:script|style|img|svg|video|canvas|iframe)\b|\b(?:style|on\w+)\s*=", text_source, re.I):
+            fail(errors, "text/index.html: text edition must not require scripts, styles, or visual media")
+        if re.search(r"<link\b[^>]*\brel=[\"'][^\"']*(?:stylesheet|preload)", text_source, re.I):
+            fail(errors, "text/index.html: text edition must not load styles or fonts")
+        required_anchors = {"top", "features", "selfhost", "get", "links"}
+        missing_anchors = required_anchors - text_page.ids
+        if missing_anchors:
+            fail(errors, f"text/index.html: missing jump-link targets: {sorted(missing_anchors)}")
+        required_links = {
+            "/", "/roadmap/", "https://docs.cantinarr.com",
+            "https://docs.cantinarr.com/start/quickstart/",
+            "https://demo.cantinarr.com", "https://github.com/windoze95/cantinarr",
+        }
+        required_links.update(f"#{anchor}" for anchor in required_anchors)
+        try:
+            stores = json.loads(CONFIG.read_text(encoding="utf-8"))
+            validate_store_links(stores)
+            for platform, beta_url in (("ios", IOS_BETA), ("android", ANDROID_BETA)):
+                store = stores[platform]
+                required_links.add(store["store_url"] if store["released"] else beta_url)
+                if not store["released"] and store["store_url"] in text_page.references:
+                    fail(errors, f"text/index.html: {platform} acquisition link must use the beta while unreleased")
+                if store["released"] and beta_url in text_page.references:
+                    fail(errors, f"text/index.html: {platform} acquisition link must use the public store after release")
+            if not stores["ios"]["released"] and not re.search(r"iOS is in App Store review", text_source):
+                fail(errors, "text/index.html: unreleased iOS must retain the App Store review notice")
+        except (OSError, ValueError, KeyError, TypeError):
+            # check_store_links() reports invalid launch configuration above.
+            pass
+        missing_links = required_links - set(text_page.references)
+        if missing_links:
+            fail(errors, f"text/index.html: missing navigation or acquisition links: {sorted(missing_links)}")
+        for setup_text in ("docker compose up -d", "ghcr.io/windoze95/cantinarr:latest", "8585:8585", "./config:/config"):
+            if setup_text not in text_source:
+                fail(errors, f"text/index.html: server setup is missing {setup_text!r}")
+        if not re.search(r"voting require(?:s)? JavaScript", text_source):
+            fail(errors, "text/index.html: roadmap voting must explain its JavaScript requirement")
+    if index and "/text/" not in index.references:
+        fail(errors, "index.html: text edition must have a direct /text/ link")
 
     mobile_nav_shared = {
         "https://docs.cantinarr.com",
