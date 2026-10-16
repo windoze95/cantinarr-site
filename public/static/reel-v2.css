@@ -498,7 +498,8 @@ button {
   top: 100px;
   max-width: 420px;
   width: 100%;
-  margin: auto;
+  /* Keep vertical margins zero so the panel starts beside Browse. */
+  margin: 0 auto;
 }
 .app-window {
   border: 1px solid var(--line);

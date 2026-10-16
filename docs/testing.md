@@ -92,7 +92,10 @@ setup instructions, not a terminal UI for the app or voting API.
 Serve `public/` locally. Check the homepage at 1440, 800, 390, and 320 pixels,
 plus a short landscape viewport. The illustrated jackets link to the matching
 media sections; on phones the shelf scrolls horizontally. Main-page scrolling
-stays native. Browse, Request, and Ready links jump to their narrative steps,
+stays native. At the start of Browse, the phone and request slip must already
+be visible beside the first chapter. Follow all three steps while scrolling
+down and back up; check the actual panel position as well as the active label.
+Browse, Request, and Ready links jump to their narrative steps,
 and the highlighted link, example request status, and progress line agree with
 the visible step. The final app view shows the title and availability controls.
 The request slip demonstrates the flow alongside real app screens.
