@@ -1586,6 +1586,9 @@ summary {
   }
 }
 @media (max-width: 800px) {
+  .shelf-window.scroll-linked {
+    scroll-snap-type: none;
+  }
   .shelf-window {
     overflow-x: auto;
     overflow-y: hidden;

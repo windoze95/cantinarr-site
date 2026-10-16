@@ -123,3 +123,20 @@ Check the notification does not cover the Available control, touch targets,
 or narrative copy at desktop and phone widths. With reduced motion it appears
 without sliding or fading. No notification permission prompt or external push
 request is part of this website preview.
+
+## Mobile shelf scroll
+
+On a phone, scroll the page down past the opening. The shelf moves from Movies
+and TV shows to Books and Music, with both final jackets visible before the
+shelf passes the navigation. Scroll back up to reverse it. The page keeps its
+normal vertical scrolling and the desktop shelf keeps its existing movement.
+
+A vertical touch that starts over the shelf must keep this behavior. A
+horizontal swipe, horizontal or Shift-wheel gesture, or keyboard focus within
+the shelf gives the visitor manual horizontal control for the rest of the visit;
+later page scrolling must not pull it back. Reduced motion and JavaScript off
+keep the manual horizontal shelf. Check 390px and 320px, no document overflow,
+and resize across the 800px breakpoint.
+
+Run `node --test scripts/tests/test_shelf_scroll.mjs` for progress, reversing,
+manual takeover, and desktop/reduced-motion boundaries.

@@ -2,6 +2,11 @@
   "use strict";
 
   var shelf = document.querySelector(".shelf");
+  var shelfWindow = document.querySelector(".shelf-window");
+  var siteNav = document.querySelector(".site-nav");
+  var mobileShelf = window.matchMedia("(max-width: 800px)");
+  var shelfManual = false;
+  var shelfTouchStart = null;
   var opening = document.querySelector(".opening");
   var stage = document.querySelector(".story-stage");
   var chapters = Array.from(document.querySelectorAll("[data-step]"));
@@ -16,8 +21,84 @@
   var currentStep = -1;
   var framePending = false;
 
+  function updateShelfScroll() {
+    if (!shelfWindow) {
+      return;
+    }
+    var automatic =
+      mobileShelf.matches && !reducedMotion.matches && !shelfManual;
+    shelfWindow.classList.toggle("scroll-linked", automatic);
+    if (!automatic) {
+      return;
+    }
+
+    var rect = shelfWindow.getBoundingClientRect();
+    var endTop = (siteNav ? siteNav.getBoundingClientRect().bottom : 66) + 24;
+    var startTop = Math.max(
+      window.innerHeight - Math.min(rect.height, window.innerHeight * 0.4) - 16,
+      endTop + 120,
+    );
+    var progress = Math.max(
+      0,
+      Math.min(1, (startTop - rect.top) / (startTop - endTop)),
+    );
+    shelfWindow.scrollLeft =
+      progress * (shelfWindow.scrollWidth - shelfWindow.clientWidth);
+  }
+
+  function takeShelfControl() {
+    shelfManual = true;
+    shelfWindow.classList.remove("scroll-linked");
+  }
+
+  if (shelfWindow) {
+    // Vertical gestures still move the page; a horizontal gesture keeps the shelf.
+    shelfWindow.addEventListener(
+      "touchstart",
+      function (event) {
+        var touch = event.touches.length === 1 ? event.touches[0] : null;
+        shelfTouchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+      },
+      { passive: true },
+    );
+    shelfWindow.addEventListener(
+      "touchmove",
+      function (event) {
+        if (!shelfTouchStart || event.touches.length !== 1) {
+          return;
+        }
+        var dx = Math.abs(event.touches[0].clientX - shelfTouchStart.x);
+        var dy = Math.abs(event.touches[0].clientY - shelfTouchStart.y);
+        if (dx > 8 && dx > dy * 1.2) {
+          takeShelfControl();
+        }
+      },
+      { passive: true },
+    );
+    ["touchend", "touchcancel"].forEach(function (name) {
+      shelfWindow.addEventListener(
+        name,
+        function () {
+          shelfTouchStart = null;
+        },
+        { passive: true },
+      );
+    });
+    shelfWindow.addEventListener(
+      "wheel",
+      function (event) {
+        if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) {
+          takeShelfControl();
+        }
+      },
+      { passive: true },
+    );
+    shelfWindow.addEventListener("focusin", takeShelfControl);
+  }
+
   function updateScene() {
     framePending = false;
+    updateShelfScroll();
     if (shelf && opening) {
       var distance = Math.max(
         0,
@@ -90,6 +171,9 @@
   window.addEventListener("resize", scheduleScene);
   if (reducedMotion.addEventListener) {
     reducedMotion.addEventListener("change", scheduleScene);
+  }
+  if (mobileShelf.addEventListener) {
+    mobileShelf.addEventListener("change", scheduleScene);
   }
   updateScene();
 
