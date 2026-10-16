@@ -105,7 +105,9 @@ disabled (headings, navigation, disclosure content, setup, and downloads remain
 usable), keyboard focus, Menu close on Escape/outside click/link selection,
 clipboard success and denied access, and the legacy `/#android-beta` dialog.
 On short screens the product view scrolls normally instead of staying fixed.
-The homepage stylesheet is isolated from roadmap/admin/404 styling. New
+The homepage and public roadmap share the base typography, navigation, and
+footer styles; roadmap layout lives in its own stylesheet. Admin and 404 keep
+their existing styles. New
 stylesheet and script filenames must change before a later deployed edit,
 because `/static/*` responses are cached immutably.
 
@@ -140,3 +142,18 @@ and resize across the 800px breakpoint.
 
 Run `node --test scripts/tests/test_shelf_scroll.mjs` for progress, reversing,
 manual takeover, and desktop/reduced-motion boundaries.
+
+## Public roadmap design
+
+Use a disposable local D1 preview with open, planned, and shipped items. Check
+the amber opening, ruled request rows, separate vote totals, shipped count,
+suggestion form, and shared navigation/footer at desktop, 390px, and 320px.
+Long titles and details must wrap without document overflow. The form follows
+the list on phones and short screens; the honeypot remains hidden. Confirm the
+Menu works with keyboard input and Escape, and visible focus is clear on the
+amber opening and dark board.
+
+Upvote, switch to downvote, reload to confirm the remembered choice, and remove
+the vote. Shipped items stay locked. Submit a local suggestion and check its
+pending confirmation. Run the board tests and API smoke described above. The
+visual restyle must leave the inline board client and API behavior unchanged.
