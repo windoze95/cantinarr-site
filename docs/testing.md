@@ -108,3 +108,18 @@ On short screens the product view scrolls normally instead of staying fixed.
 The homepage stylesheet is isolated from roadmap/admin/404 styling. New
 stylesheet and script filenames must change before a later deployed edit,
 because `/static/*` responses are cached immutably.
+
+## Native apps and push preview
+
+The opening must name the native iPhone/iPad/Android apps and show their two
+store badges before the media shelf. Their destinations and release labels
+still come from `docs/store-links.json`. Keep the generated `hero` region in
+the opening and the generated `get` links at the bottom.
+
+Scroll Browse, Request, Ready, and back. The notification appears only at Ready,
+using the app's movie-available wording, and leaves when returning to Request.
+Browse and Request keep the Discover screen; Ready shows the Available screen.
+Check the notification does not cover the Available control, touch targets,
+or narrative copy at desktop and phone widths. With reduced motion it appears
+without sliding or fading. No notification permission prompt or external push
+request is part of this website preview.
