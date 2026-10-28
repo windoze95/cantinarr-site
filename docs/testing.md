@@ -229,7 +229,7 @@ manual takeover, and desktop/reduced-motion boundaries.
 
 ## Roadmap workspace
 
-The public and admin pages use `board-view-v1.js` and
+The public and admin pages use `board-view-v2.js` and
 `board-workspace-v1.css` without a framework. Search covers title, details,
 maintainer response, feature ID, and GitHub issue number (including `#123`).
 It searches every status by default, including shipped and admin-only declined
@@ -237,8 +237,12 @@ ideas. Status and presence filters combine with search; the toolbar reports
 shown, matching, and total counts. Private contact values are never searched,
 placed in URLs, or saved as filter preferences.
 
-Desktop defaults to status lanes, with six visible cards per lane. Screens at
-760px and below default to a twenty-item list; either view is always selectable.
+Every visit defaults to status lanes on desktop and mobile, with six visible
+cards per lane. A twenty-item list remains available through an explicit choice.
+Search, status, presence filters, sort, display, expanded filter controls, and
+paging reset on page load and Back/Forward restoration. Browsing preferences
+are not stored between visits. This reset preserves drafts and active write
+locks; the vote identity cookie and admin authentication are unchanged.
 Show more reveals six additional cards in a lane or twenty in a list and focuses
 the first revealed card. On narrow screens Board deliberately scrolls its lanes
 horizontally; the document itself must not overflow. Status buttons offer direct

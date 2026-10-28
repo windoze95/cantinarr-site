@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
+const viewSource = readFileSync(new URL('../../public/static/board-view-v2.js', import.meta.url), 'utf8');
 const source = readFileSync(new URL('../../public/roadmap/index.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 class Element {
@@ -46,7 +46,7 @@ async function page() {
   let read = async () => new Response(JSON.stringify(server));
   vm.runInNewContext(viewSource + '\n' + source, {
     document: { querySelector: () => new Element('a'), getElementById: (id) => elements[id], createElement: (tag) => new Element(tag) },
-    window: { addEventListener: (event, handler) => { events[event] = handler; } },
+    window: { addEventListener: (event, handler) => { const previous = events[event]; events[event] = (value) => { previous?.(value); handler(value); }; } },
     fetch: (url, options) => {
       calls.push({ url, options });
       return options?.method === 'POST' ? send(url, options) : read();

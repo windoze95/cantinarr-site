@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
+const viewSource = readFileSync(new URL('../../public/static/board-view-v2.js', import.meta.url), 'utf8');
 const source = readFileSync(new URL('../../public/roadmap/index.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 class Element {
@@ -38,7 +38,7 @@ async function page({ siteKey = null, features = [feature()] } = {}) {
     { id: 1, body: '<img src=x onerror=bad()>', author: 'maintainer', createdAt: '2026-10-27T12:00:00Z' }
   ], nextCursor: null }));
   let send = async () => new Response('{"ok":true,"queued":true}');
-  const window = { addEventListener: (event, handler) => { events[event] = handler; }, turnstile: {
+  const window = { addEventListener: (event, handler) => { const previous = events[event]; events[event] = (value) => { previous?.(value); handler(value); }; }, turnstile: {
     render: (slot, options) => { const id = widgets.length; widgets.push({ slot, options }); return id; },
     getResponse: (id) => 'challenge-' + id, reset: (id) => resets.push(id), remove: (id) => removed.push(id)
   } };
