@@ -3,21 +3,29 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
+const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
 const source = readFileSync(new URL('../../public/roadmap/index.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 class Element {
-  constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.disabled = false; }
-  set textContent(value) { this.text = value; this.children = []; }
+  constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.dataset = {}; this.disabled = false; }
+  set textContent(value) { this.text = value; this.children.forEach((child) => { child.parentNode = null; }); this.children = []; }
   get textContent() { return (this.text || '') + this.children.map((child) => child.textContent).join(''); }
-  appendChild(child) { this.children.push(child); return child; }
+  appendChild(child) { return this.insertBefore(child, null); }
+  insertBefore(child, before) {
+    if (child.parentNode) child.parentNode.children.splice(child.parentNode.children.indexOf(child), 1);
+    const index = before ? this.children.indexOf(before) : this.children.length;
+    this.children.splice(index, 0, child); child.parentNode = this; return child;
+  }
+  focus() {}
   setAttribute(key, value) { this.attrs[key] = value; }
   addEventListener(event, handler) { this.events[event] = handler; }
 }
+const walk = (root) => [root, ...root.children.flatMap(walk)];
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const feature = () => ({ id: 1, title: '<img onerror=alert(1)>', detail: 'Plain text', status: 'open', upvotes: 7, downvotes: 3, vote: null });
 async function page() {
   const fields = ['f-title', 'f-detail', 'f-contact-email', 'f-contact-discord', 'f-website'];
-  const elements = Object.fromEntries(['board-status', 'board-list', 'shipped-title', 'shipped-count', 'shipped-list', 'suggest-form', 'form-status', ...fields]
+  const elements = Object.fromEntries(['board-status', 'board-list', 'board-controls', 'suggest-form', 'form-status', ...fields]
     .map((id) => [id, new Element('div')]));
   const submitButton = new Element('button');
   elements['suggest-form'].querySelector = () => submitButton;
@@ -36,8 +44,8 @@ async function page() {
     return new Response(JSON.stringify({ ok: true, ...item }));
   };
   let read = async () => new Response(JSON.stringify(server));
-  vm.runInNewContext(source, {
-    document: { getElementById: (id) => elements[id], createElement: (tag) => new Element(tag) },
+  vm.runInNewContext(viewSource + '\n' + source, {
+    document: { querySelector: () => new Element('a'), getElementById: (id) => elements[id], createElement: (tag) => new Element(tag) },
     window: { addEventListener: (event, handler) => { events[event] = handler; } },
     fetch: (url, options) => {
       calls.push({ url, options });
@@ -45,10 +53,11 @@ async function page() {
     },
   });
   await tick();
-  const controls = () => elements['board-list'].children[0].children[0];
+  const card = () => walk(elements['board-list']).find((node) => node.id === 'feature-1');
+  const controls = () => card().children[0];
   const buttons = () => controls().children;
   const count = (direction) => buttons()[direction].children[1].textContent;
-  return { elements, events, calls, server, controls, buttons, count,
+  return { elements, events, calls, server, card, controls, buttons, count,
     setSend: (handler) => { send = handler; }, setRead: (handler) => { read = handler; } };
 }
 
@@ -116,7 +125,7 @@ test('client serializes repeated taps, sends desired states, switches and remove
   down.events.click(); await tick();
   assert.equal(down.attrs['aria-pressed'], 'false');
   assert.match(down.attrs['aria-label'], /3 downvotes/);
-  assert.equal(p.elements['board-list'].children[0].children[1].children[0].children[0].textContent, '<img onerror=alert(1)>');
+  assert.equal(p.card().children[1].children[0].children[0].textContent, '<img onerror=alert(1)>');
 });
 
 test('lost reply reconciles a committed vote and the next active tap removes it', async () => {
@@ -159,7 +168,7 @@ test('back/forward restoration refreshes cookie-backed state and shipped totals 
   assert.equal(p.buttons()[1].attrs['aria-pressed'], 'true');
   p.server.features[0].status = 'shipped';
   p.events.pageshow({ persisted: true }); await tick();
-  const controls = p.elements['shipped-list'].children[0].children[0];
+  const controls = p.controls();
   assert.ok(controls.children.every((btn) => btn.disabled && !btn.events.click));
   assert.equal(controls.children[0].children[1].textContent, '12');
   assert.equal(controls.children[1].children[1].textContent, '6');

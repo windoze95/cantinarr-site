@@ -7,7 +7,7 @@
 - [ ] `REL-012` · P1 · UI — Validate the homepage, 404 page, and header policy at phone and desktop sizes; verify navigation, screenshots, self-host snippet, demo, store badges, privacy, and canonical links. At phone widths, the Menu control must expose Features, Self-host, Docs, Roadmap, Live demo, Discord, and GitHub; it must close after choosing a link, clicking outside, or pressing Escape. Store badges and final download links must match each platform's reviewed state in `docs/store-links.json`: beta destinations while `released` is false, public-store destinations only after verified production release. Unreleased platforms must keep explicit beta labels; released badges must not have an open-beta chip. Released Android acquisition links must not offer beta enrollment; intentional tester links stay in the release documentation. Landing on legacy `/#android-beta` must open the Android dialog with the appropriate primary destination and, after launch, no beta opt-in link. Verify initial focus, Esc/backdrop/Close, repeated opening, Back/Forward and hash changes; closing must drop the fragment so a reload does not reopen it. Other fragments (`#features`, `#get`) must remain plain anchors. Confirm no Android invite-only or email-for-access instructions remain. See [store launch preparation](store-launch.md) for the activation checklist and read-only cross-repository audit.
 - [ ] `REL-013` · P1 · LIVE — Deploy `public/` through the Cloudflare workflow or manual Wrangler path; verify the `cantinarr` project, cache policy, assets, fonts, and live smoke without a build step.
 - [ ] `REL-014` · P1 · SEC/UI — Run the static verifier, accessibility and keyboard checks, contrast and overflow review, and verify no secret, environment value, repo instruction, or local path enters `public/`. While iOS is awaiting review, confirm both the hero and download section explicitly say it is in App Store review and use TestFlight. Android's released state must use the public Google Play listing without beta wording or opt-in links.
-- [ ] `REL-015` · P1 · BOARD — Exercise `/roadmap/`: the list loads, the Shipped heading shows a prominent count matching the visible shipped items, separate Up and Down controls show independent totals (never a net score), selecting the opposite switches the anonymous vote, selecting the active direction clears it, and selection/totals survive a reload and back/forward navigation, a submission passes Turnstile and lands in the pending queue, admin approve/decline/status/delete flows work at `/roadmap/admin.html`, rate limits return friendly errors, and a wrong admin token is rejected. On the admin page, pending ideas appear first in age order, planned and open ideas by upvotes with both totals visible, then declined ideas; shipped ideas are collapsed under a prominent count. Already accepted ideas without a Luna review record do not say they are awaiting review. Check the count and Shipped disclosure at phone widths.
+- [ ] `REL-015` · P1 · BOARD — Exercise `/roadmap/`: status lanes and counts load, search finds open/planned/shipped ideas, issue/response/comment filters combine correctly, and Clear filters restores all results. Board view shows six per lane; list view shows twenty, with explicit Show more controls. Check separate up/down totals, vote switch/remove and back/forward refresh, local submission/moderation, unauthorized admin rejection, and shipped vote locks. Admin adds pending/declined lanes, pending-comment/contact filters, and Manage request disclosures. Verify metadata changes update filters without losing drafts.
 - [ ] `REL-017` · P1 · BOARD — With a test `OPENAI_API_KEY`, submit clear in-scope and out-of-scope ideas and verify GPT-6 Luna automatically opens or declines them and records reasons in the admin queue. A partial overlap stays pending for human review; decline as a duplicate only when an existing item covers the entire request. Uncertain ideas and failed calls stay pending. Check that ntfy names the outcome (approved, denied, needs review, or review pending) once per completed attempt, that a later successful retry sends its final decision, and that a late AI result after an admin change does not claim an AI decision. Verify a failed review retries after the backoff on a later public or admin board load, an old pending idea gets reviewed on a board load, and unauthorized callers cannot see the decision reason. Without the key, submissions and manual moderation still work and ntfy says needs review.
 - [ ] `REL-018` · P1 · BOARD — Open an item's comments, submit an anonymous comment, and confirm it stays private until approved from the admin page. Check pagination, pending counts, approval/deletion, a public Maintainer comment from admin, wrong-token rejection, and shipped-item comments. Save, edit, and clear the separate maintainer response: it must remain visible on the card with comments collapsed and must never become a comment. Saving one card must preserve drafts on others. Check long text, literal HTML, keyboard labels/focus, Turnstile expiry/retry, rate-limit errors, and no overflow at 320px, 390px, and desktop widths.
 
@@ -139,8 +139,8 @@ cannot insert duplicates or accidentally toggle back. The UI maps the active
 button to `null` and the opposite button to its direction. D1 executes the
 status/rate guard, mutation and count read in one transaction. Switching keeps
 the original row's IP hash and timestamp; clearing deletes that vote row.
-Only `open` and `planned` items accept votes. Public ranking and admin sorting
-continue to use upvotes; downvotes never subtract from that order.
+Only `open` and `planned` items accept votes. Default ranking uses upvotes, with downvotes and creation time breaking ties;
+downvotes never subtract from a score. Newest, oldest, and title sorts are also available.
 
 Public and admin reads return `upvotes` and `downvotes`; public reads and vote
 responses also return the caller's `vote` (`up`, `down`, or `null`). Public GET
@@ -227,17 +227,49 @@ and resize across the 800px breakpoint.
 Run `node --test scripts/tests/test_shelf_scroll.mjs` for progress, reversing,
 manual takeover, and desktop/reduced-motion boundaries.
 
-## Public roadmap design
+## Roadmap workspace
 
-Use a disposable local D1 preview with open, planned, and shipped items. Check
-the amber opening, ruled request rows, separate vote totals, shipped count,
-suggestion form, and shared navigation/footer at desktop, 390px, and 320px.
-Long titles and details must wrap without document overflow. The form follows
-the list on phones and short screens; the honeypot remains hidden. Confirm the
-Menu works with keyboard input and Escape, and visible focus is clear on the
-amber opening and dark board.
+The public and admin pages use `board-view-v1.js` and
+`board-workspace-v1.css` without a framework. Search covers title, details,
+maintainer response, feature ID, and GitHub issue number (including `#123`).
+It searches every status by default, including shipped and admin-only declined
+ideas. Status and presence filters combine with search; the toolbar reports
+shown, matching, and total counts. Private contact values are never searched,
+placed in URLs, or saved as filter preferences.
 
-Upvote, switch to downvote, reload to confirm the remembered choice, and remove
-the vote. Shipped items stay locked. Submit a local suggestion and check its
-pending confirmation. Run the board tests and API smoke described above. The
-visual restyle must leave the inline board client and API behavior unchanged.
+Desktop defaults to status lanes, with six visible cards per lane. Screens at
+760px and below default to a twenty-item list; either view is always selectable.
+Show more reveals six additional cards in a lane or twenty in a list and focuses
+the first revealed card. On narrow screens Board deliberately scrolls its lanes
+horizontally; the document itself must not overflow. Status buttons offer direct
+access to any lane. Card descriptions and titles expand together; maintainer
+responses have their own visible preview and expansion control. The suggestion
+form is a disclosure after the board, opened and focused by the header link.
+
+Admin cards expose status, separate votes, and issue/response/comment/contact
+presence before expansion. Manage request contains private contacts, status and
+delete actions, issue and response editors, and lazy comments. A confirmed save
+refreshes metadata-dependent filters. If that removes the focused card from the
+results, focus returns to search. Missing/rejected credentials must remove all
+cached private cards, hide controls, and clear drafts.
+
+Use a disposable local D1 preview with every status and a mix of metadata. Check
+1440px, 800px, 390px, and 320px, including open filters, long unbroken text,
+expanded descriptions/responses, comment forms, and admin editors. Confirm no
+document overflow, visible keyboard focus, Menu and Escape behavior, reduced
+motion, and touch targets. Show more must expose hidden cards, and a search
+must find matches beyond the initial page. Empty results must have a clear reset.
+
+Filter, sort, and view changes retain exact card nodes, drafts, open discussions,
+and in-flight write locks. Public Turnstile challenges are remounted after a
+view change and are mounted only for visible open discussions. Test with a
+simulated challenge in local browser QA; real Turnstile requires a separate
+configured deployment check. No filter action may submit or replay a write.
+Full server refreshes preserve drafts and wait for active writes to finish.
+
+Run `node --test scripts/tests/test_board_*.mjs` for combined filters, pagination,
+search across statuses, presence refresh, safe rendering, authentication and
+write reconciliation. Run the static verifier and local API smoke above, then
+browser-check voting, comment drafts, response/issue edits, status changes, and
+auth loss. The browsing controls do not change API, moderation, vote, issue,
+or contact-privacy semantics.

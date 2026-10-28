@@ -5,17 +5,28 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../../public/roadmap/admin.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
 class Element {
   constructor(tag) {
     this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.dataset = {};
     this.disabled = false; this.hidden = false; this.value = '';
   }
-  set textContent(value) { this.text = value; this.children = []; }
+  set textContent(value) { this.text = value; this.children.forEach((child) => { child.parentNode = null; }); this.children = []; }
   get textContent() { return (this.text || '') + this.children.map((child) => child.textContent).join(''); }
-  appendChild(child) { this.children.push(child); return child; }
-  removeChild(child) { this.children.splice(this.children.indexOf(child), 1); }
+  get firstChild() { return this.children[0] || null; }
+  appendChild(child) { if (child.parentNode) child.parentNode.removeChild(child); this.children.push(child); child.parentNode = this; return child; }
+  insertBefore(child, before) {
+    if (!before) return this.appendChild(child);
+    if (child === before) return child;
+    if (child.parentNode) child.parentNode.removeChild(child);
+    this.children.splice(this.children.indexOf(before), 0, child); child.parentNode = this; return child;
+  }
+  removeChild(child) { this.children.splice(this.children.indexOf(child), 1); child.parentNode = null; return child; }
   setAttribute(key, value) { this.attrs[key] = value; }
+  getAttribute(key) { return this.attrs[key]; }
   addEventListener(event, handler) { this.events[event] = handler; }
+  contains(child) { return child === this || this.children.some((node) => node.contains(child)); }
+  focus() { this.focused = true; }
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const walk = (root) => [root, ...root.children.flatMap(walk)];
@@ -29,7 +40,7 @@ const feature = (id) => ({ id, title: 'Feature ' + id, status: 'open', detail: '
 const comment = (id, status = 'approved') => ({ id, body: '<img onerror=alert(1)>', author: 'visitor', status, createdAt: '2026-10-27T12:00:00Z' });
 
 async function page() {
-  const elements = Object.fromEntries(['token', 'mod-status', 'mod-sections', 'load'].map((id) => [id, new Element('div')]));
+  const elements = Object.fromEntries(['token', 'mod-status', 'mod-controls', 'mod-sections', 'load'].map((id) => [id, Object.assign(new Element('div'), { id })]));
   const calls = []; const server = { features: [feature(1), feature(2)], reviewEnabled: false };
   const comments = [comment(1, 'pending'), comment(2)];
   let send = async (url, options) => {
@@ -47,15 +58,18 @@ async function page() {
     return response({ ok: true });
   };
   let read = async (url) => url === '/api/board/admin' ? response(server) : response({ comments, nextCursor: null });
-  vm.runInNewContext(source, {
-    document: { getElementById: (id) => elements[id], createElement: (tag) => new Element(tag), createTextNode: (text) => Object.assign(new Element('text'), { text }) },
+  const context = {
+    document: { getElementById: (id) => elements[id] || Object.values(elements).map((node) => byId(node, id)).find(Boolean), createElement: (tag) => new Element(tag), createTextNode: (text) => Object.assign(new Element('text'), { text }) },
+    window: {},
     sessionStorage: { getItem: () => 'local-test-token', setItem() {}, removeItem() {} },
     setTimeout: () => 1,
     fetch: (url, options) => {
       calls.push({ url, options });
       return options?.method === 'POST' ? send(url, options) : read(url, options);
     },
-  });
+  };
+  vm.runInNewContext(viewSource, context);
+  vm.runInNewContext(source, context);
   elements.load.events.click();
   await tick();
   const cards = walk(elements['mod-sections']).filter((node) => node.className === 'mod-item')
@@ -350,4 +364,97 @@ test('issue drafts survive errors and status changes; full reload waits for an i
   finish(); await tick();
   assert.notEqual(p.card(1), card);
   assert.equal(byId(p.card(1), 'issue-1').value, draft);
+});
+
+test('compact admin cards keep the response visible while management and long details expand independently', async () => {
+  const p = await page();
+  p.server.features[0].detail = 'Long description. '.repeat(60);
+  p.server.features[0].contactEmail = 'private@example.test';
+  p.elements.load.events.click(); await tick();
+  const card = p.card(1);
+  const manage = byClass(card, 'manage-panel');
+  const responsePreview = byClass(card, 'maintainer-response');
+  assert.equal(manage.open, false);
+  assert.ok(!manage.contains(responsePreview), 'response remains visible outside the management disclosure');
+  assert.ok(manage.contains(byClass(card, 'private-contact')));
+  assert.equal(responsePreview.hidden, false);
+  assert.equal(byId(card, 'response-preview-1').textContent, '<b>Pinned update</b>');
+  assert.equal(byId(card, 'response-preview-1').children.length, 0);
+  assert.match(byClass(card, 'board-metadata').textContent, /No issue.*Has response.*1 pending comment.*Contact provided/);
+  assert.doesNotMatch(byClass(card, 'board-metadata').textContent, /private@example/);
+  button(card, 'Show details').events.click();
+  button(card, 'Read full response').events.click();
+  manage.open = true;
+  p.elements.load.events.click(); await tick();
+  assert.equal(byClass(p.card(1), 'manage-panel').open, true);
+  assert.match(byId(p.card(1), 'request-detail-1').className, /expanded/);
+  assert.match(byId(p.card(1), 'response-preview-1').className, /expanded/);
+});
+
+test('filters and layout changes retain drafts, open panels, and an in-flight save on the same card', async () => {
+  const p = await page();
+  const card = p.card(1);
+  const other = p.card(2);
+  byClass(card, 'manage-panel').open = true;
+  byId(card, 'response-1').value = 'Saving response';
+  byId(other, 'issue-2').value = 'https://github.com/windoze95/cantinarr/issues/2';
+  byId(other, 'comment-2').value = 'Keep this comment draft';
+  let finish;
+  p.setSend(() => new Promise((resolve) => { finish = () => resolve(response({ ok: true })); }));
+  submit(byClass(card, 'response-editor'));
+  const search = byId(p.elements['mod-controls'], 'board-search');
+  search.value = 'Feature 2'; search.events.input();
+  assert.equal(card.hidden, true);
+  assert.equal(button(card, 'Save response').disabled, true);
+  const list = walk(p.elements['mod-controls']).find((node) => node.dataset.view === 'list');
+  list.events.click();
+  search.value = ''; search.events.input();
+  assert.equal(p.card(1), card, 'view changes must reuse a saving card');
+  assert.equal(card.hidden, false);
+  assert.equal(byClass(card, 'manage-panel').open, true);
+  assert.equal(byId(other, 'comment-2').value, 'Keep this comment draft');
+  assert.equal(byId(other, 'issue-2').value, 'https://github.com/windoze95/cantinarr/issues/2');
+  finish(); await tick();
+  assert.equal(p.card(1), card);
+  assert.equal(button(card, 'Save response').disabled, false);
+  assert.equal(byId(card, 'response-preview-1').textContent, 'Saving response');
+  assert.equal(p.calls.filter((call) => call.options?.method === 'POST').length, 1);
+});
+
+test('confirmed metadata changes refresh active filters and auth clearing discards filtered private cards', async () => {
+  const p = await page();
+  p.server.features[0].contactDiscord = 'private-contact-name';
+  p.elements.load.events.click(); await tick();
+  const card = p.card(1);
+  const issueFilter = byId(p.elements['mod-controls'], 'board-issue-filter');
+  issueFilter.value = 'missing'; issueFilter.events.change();
+  assert.equal(card.hidden, false);
+  byId(card, 'issue-1').value = 'https://github.com/windoze95/cantinarr/issues/677';
+  submit(byClass(card, 'issue-editor')); await tick();
+  assert.equal(card.hidden, true, 'a saved issue leaves the missing-issue result set');
+  assert.match(byClass(card, 'board-metadata').textContent, /Issue #677/);
+  issueFilter.value = 'all'; issueFilter.events.change();
+  assert.equal(p.card(1), card);
+  assert.equal(card.hidden, false);
+  const commentFilter = byId(p.elements['mod-controls'], 'board-comment-filter');
+  commentFilter.value = 'pending'; commentFilter.events.change();
+  const comments = await openComments(card);
+  button(comments, 'Approve comment').events.click(); await tick();
+  assert.equal(card.hidden, true, 'a moderated comment updates the pending-comment result set');
+  assert.doesNotMatch(byClass(card, 'board-metadata').textContent, /pending comment/);
+  p.elements.token.value = ''; p.elements.load.events.click();
+  assert.equal(p.elements['mod-sections'].textContent, '');
+  assert.equal(p.elements['mod-controls'].hidden, true);
+  issueFilter.value = 'all'; issueFilter.events.change();
+  assert.equal(p.elements['mod-sections'].textContent, '', 'old filter controls cannot restore discarded private cards');
+});
+
+test('pending card uses the configured Luna review state inside Manage request', async () => {
+  const p = await page();
+  p.server.reviewEnabled = true;
+  p.server.features[0].status = 'pending';
+  p.server.features[0].reviewState = 'waiting';
+  p.elements.load.events.click(); await tick();
+  assert.match(p.card(1).textContent, /Luna review will retry/);
+  assert.doesNotMatch(p.card(1).textContent, /Luna review is not configured/);
 });

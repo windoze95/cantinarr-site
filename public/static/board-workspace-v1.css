@@ -1,0 +1,130 @@
+/* Shared roadmap workspace. Keep the site's amber, brown and local type. */
+.roadmap-page .page-width { max-width: 1600px; }
+.roadmap-page .board-hero { padding-block: 28px; }
+.roadmap-page .board-intro { grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: center; }
+.roadmap-page .board-hero h1 { font-size: clamp(36px, 5vw, 58px); letter-spacing: -.045em; }
+.roadmap-page .board-lede { max-width: none; display: flex; gap: 24px; align-items: center; justify-content: flex-end; }
+.roadmap-page .board-lede p { font-size: 15px; max-width: 33ch; }
+.roadmap-page .board-jump { margin: 0; flex-shrink: 0; border-bottom: 1px solid; }
+.roadmap-page .board-cols { display: block; padding-block: 28px 56px; }
+.roadmap-page .suggest-card { position: static; margin: 28px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; scroll-margin-top: 100px; }
+.suggest-card > summary { cursor: pointer; padding: 12px 18px; color: var(--gold); font-size: 14px; font-weight: 650; }
+.suggest-card > summary span { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 12px; }
+.suggest-card[open] { padding: 0 20px 24px; }
+.suggest-card[open] > summary { margin-inline: -20px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+.suggest-card form, .suggest-card .sub { max-width: 720px; margin-inline: auto; }
+
+.board-toolbar, .mod-wrap { --line: #514031; --green: #72cc91; }
+.board-toolbar { margin-bottom: 20px; }
+.board-search-field { display: block; flex: 1; min-width: 0; }
+.board-search-field > span { display: block; font-size: 13px; font-weight: 650; margin-bottom: 6px; }
+.board-search-field input { width: 100%; min-width: 0; }
+.board-toolbar input, .board-toolbar select {
+  border: 1px solid var(--line); border-radius: 5px; background: #15100c;
+  color: var(--ink); font: inherit; font-size: 16px; min-height: 44px; padding: 10px 12px;
+}
+.board-toolbar input::placeholder { color: var(--muted); opacity: 1; }
+.board-toolbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.board-status-tabs { display: flex; flex: 1; gap: 6px; flex-wrap: wrap; }
+.board-status-tab, .board-view-switch button, .board-reset, .board-more {
+  background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 5px;
+  font: inherit; font-size: 13px; line-height: 1.3; min-height: 44px; padding: 10px 13px; cursor: pointer;
+}
+.board-status-tab[aria-pressed="true"], .board-view-switch button[aria-pressed="true"] { color: var(--bg); background: var(--gold); border-color: var(--gold); font-weight: 650; }
+.board-status-tab:hover, .board-view-switch button:hover, .board-more:hover, .board-reset:hover { border-color: var(--gold); }
+.board-view-switch { display: flex; gap: 4px; }
+.board-filters { margin-top: 14px; border-block: 1px solid var(--line); }
+.board-toolbar-row > .board-filters { flex: 1; min-width: 0; margin-top: 0; }
+.board-toolbar-row > .board-filter-field { min-width: 170px; }
+.board-filters > summary { cursor: pointer; padding: 10px 0; min-height: 44px; font-size: 13px; color: var(--gold); }
+.board-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 4px 0 16px; }
+.board-filter-field { display: grid; gap: 6px; min-width: 0; font-size: 12px; color: var(--muted); }
+.board-filter-field select { width: 100%; }
+.board-results { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; padding-top: 12px; }
+.board-toolbar-row > .board-results { flex: 1; padding: 0; }
+.board-reset { color: var(--gold); padding: 6px 10px; }
+.board-lanes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(290px, 1fr); gap: 16px; overflow-x: auto; align-items: start; padding: 4px 4px 16px; margin-inline: -4px; }
+.board-lane { min-width: 0; background: #15100c; border: 1px solid var(--line, #514031); border-radius: 7px; padding: 12px; }
+.board-lane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; padding: 2px 3px 12px; border-bottom: 2px solid var(--line, #514031); }
+.board-lane-head h2 { font: inherit; font-weight: 650; font-size: 16px; letter-spacing: 0; }
+.board-lane-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.board-lane[data-status="planned"] .board-lane-head { border-color: var(--gold); }
+.board-lane[data-status="shipped"] .board-lane-head { border-color: var(--green, #72cc91); }
+.board-lane[data-status="pending"] .board-lane-head { border-color: #f47a2e; }
+.board-cards { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
+.board-more { display: block; width: 100%; color: var(--gold); margin-top: 12px; border-style: dashed; }
+.board-empty { padding: 18px 4px; color: var(--muted); font-size: 14px; }
+.board-list-view { max-width: 1100px; margin-inline: auto; }
+.board-metadata { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 12px; font-size: 11px; color: var(--muted); margin-top: 9px; line-height: 1.5; }
+.board-metadata .issue-link { display: inline-flex; min-height: 36px; margin: -5px 0; gap: 6px; padding: 3px 0; color: var(--ink); text-decoration: none; font-size: 11px; }
+.board-metadata .issue-link img { width: 14px; height: 14px; }
+.metadata-chip.pending { color: #ffb58c; }
+.metadata-chip.missing, .metadata-missing { color: var(--muted); }
+.board-item, .board-cards .mod-item { padding: 14px; background: var(--surface); border: 1px solid var(--line, #514031); border-radius: 5px; min-width: 0; margin: 0; }
+.board-item { display: flex; flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+.board-item > .item-body { width: 100%; padding: 0; }
+.board-item .item-head { gap: 7px; }
+.board-item h3, .board-cards .mod-item h3 { font-family: inherit; font-size: 16px; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
+.board-item .item-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.board-item .detail, .item-preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.board-item .detail, .board-cards .mod-item .detail { font-size: 13px; line-height: 1.6; margin-top: 8px; }
+.board-item.item-expanded .detail, .board-item.item-expanded .item-title, .item-preview.expanded { display: block; -webkit-line-clamp: unset; }
+.item-expand { display: inline-block; font: inherit; font-size: 12px; color: var(--gold); background: none; border: 0; padding: 10px 0; min-height: 36px; text-align: left; cursor: pointer; }
+.item-expand:hover { text-decoration: underline; }
+.board-item .vote-controls { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.board-item .vote-btn { flex-direction: row; justify-content: center; min-width: 82px; min-height: 40px; gap: 5px; font-size: 13px; padding: 8px; }
+.board-item .vote-label { font-size: 11px; }
+.board-item .status-chip { font-size: 11px; }
+.chip-open { color: var(--muted); }
+.board-item .maintainer-response, .mod-item .maintainer-response { margin-top: 12px; padding: 9px 11px; border-left: 2px solid var(--gold); background: #15100c; overflow-wrap: anywhere; }
+.board-item .response-label, .mod-item .response-label { color: var(--gold); font-size: 11px; }
+.board-item .maintainer-response p, .mod-item .maintainer-response p { font-size: 13px; line-height: 1.55; margin-top: 4px; white-space: pre-wrap; }
+.response-preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.response-expanded .response-preview { display: block; -webkit-line-clamp: unset; }
+.board-item .item-comments { margin-top: 7px; }
+.board-item .comments-summary { font-size: 12px; min-height: 36px; padding: 8px 0; }
+.board-item .comment-form textarea { min-height: 100px; }
+.board-item .comment-note { font-size: 11px; }
+.manage-panel { margin-top: 12px; border-top: 1px solid var(--line); }
+.manage-panel > summary { color: var(--gold); cursor: pointer; min-height: 44px; padding-top: 11px; font-size: 13px; }
+.mod-wrap input, .mod-wrap textarea, .mod-wrap select { max-width: 100%; }
+.mod-wrap :focus-visible, .board-toolbar :focus-visible, .board-cards :focus-visible { outline: 3px solid #f47a2e; outline-offset: 3px; }
+[hidden] { display: none !important; }
+@media (min-width: 761px) {
+  .board-list-view .board-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 24px; }
+  .board-list-view .board-item .item-body { grid-column: 1; grid-row: 1; }
+  .board-list-view .board-item .vote-controls { grid-column: 2; grid-row: 1; align-self: start; border: 0; padding: 0; }
+}
+@media (max-width: 1000px) {
+  .roadmap-page .board-intro { grid-template-columns: 1fr; gap: 14px; }
+  .roadmap-page .board-lede { justify-content: space-between; }
+  .roadmap-page .board-lede p { max-width: none; }
+}
+@media (max-width: 760px) {
+  .roadmap-page .board-hero { padding-block: 22px; }
+  .roadmap-page .board-intro { display: flex; justify-content: space-between; gap: 12px; }
+  .roadmap-page .board-hero h1 { font-size: 32px; }
+  .roadmap-page .board-lede { display: block; }
+  .roadmap-page .board-lede p { display: none; }
+  .roadmap-page .board-jump { margin-top: 0; font-size: 12px; }
+  .roadmap-page .board-cols { padding-block: 18px 36px; }
+  .board-toolbar-row { align-items: stretch; }
+  .board-status-tabs { flex-basis: 100%; gap: 5px; }
+  .board-status-tab { flex: 1 0 auto; padding-inline: 9px; font-size: 12px; }
+  .board-filters { margin-top: 10px; }
+  .board-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .board-filter-field select { padding-inline: 8px; font-size: 14px; }
+  .board-toolbar-row > .board-filter-field { min-width: 140px; }
+  .board-toolbar-row > .board-filters[open] { flex-basis: 100%; }
+  .board-lanes { grid-auto-columns: minmax(260px, 88%); scroll-snap-type: x proximity; }
+  .board-lane { scroll-snap-align: start; }
+  .board-item .vote-btn, .item-expand, .board-item .comments-summary { min-height: 44px; }
+  .board-item .vote-btn { min-width: 90px; }
+  .suggest-card > summary span { display: block; margin-left: 15px; }
+  .roadmap-page .suggest-card[open] { padding-inline: 14px; }
+  .roadmap-page .suggest-card[open] > summary { margin-inline: -14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .board-toolbar *, .board-cards * { transition: none; scroll-behavior: auto; }
+}
