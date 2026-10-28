@@ -10,6 +10,8 @@ import {
   ipHash,
   isoSince,
   json,
+  normalizeContact,
+  normalizeContactEmail,
   notifyReviewOutcome,
   readJsonBody,
   verifyTurnstile,
@@ -37,6 +39,10 @@ export async function onRequestPost(context) {
   if (title.length < LIMITS.titleMin) {
     return json({ error: 'invalid_title' }, { status: 400 });
   }
+  const contactEmail = normalizeContactEmail(body.contactEmail);
+  if (contactEmail === null) return json({ error: 'invalid_contact_email' }, { status: 400 });
+  const contactDiscord = normalizeContact(body.contactDiscord, LIMITS.contactDiscordMax);
+  if (contactDiscord === null) return json({ error: 'invalid_contact_discord' }, { status: 400 });
 
   const hash = await ipHash(request, env);
   const recent = await countRecent(db, 'submission_log', hash, isoSince(DAY_MS));
@@ -49,6 +55,10 @@ export async function onRequestPost(context) {
 
   const inserted = await db.batch([
     db.prepare(`INSERT INTO features (title, detail, status) VALUES (?1, ?2, 'pending')`).bind(title, detail),
+    // D1 batches are transactions. Keep this directly after the feature insert
+    // so last_insert_rowid() refers to that feature, not the submission log.
+    db.prepare(`INSERT INTO feature_contacts (feature_id, email, discord)
+      SELECT last_insert_rowid(), ?1, ?2 WHERE ?1 <> '' OR ?2 <> ''`).bind(contactEmail, contactDiscord),
     db.prepare(`INSERT INTO submission_log (ip_hash) VALUES (?1)`).bind(hash),
   ]);
 

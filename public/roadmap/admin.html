@@ -40,6 +40,9 @@
 .mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
 .mod-item .meta.pending { color: var(--signal); }
 .mod-item .detail { color: var(--muted); font-size: .92rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
+.private-contact { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: .88rem; overflow-wrap: anywhere; }
+.private-contact strong { color: var(--gold); }
+.private-contact p { margin-top: 6px; }
 .mod-item .review { color: var(--ink); font-size: .88rem; margin-top: 10px; white-space: pre-line; overflow-wrap: anywhere; }
 .mod-item .review strong { color: var(--gold); }
 .mod-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
@@ -116,12 +119,23 @@
   var communicationDrafts = {};
   var activeCommunicationRequests = 0;
   var reloadAfterCommunication = false;
+  var boardLoadVersion = 0;
   tokenInput.value = sessionStorage.getItem('cb_admin') || '';
+
+  function clearPrivateBoard() {
+    boardLoadVersion += 1;
+    sections.textContent = '';
+    communicationDrafts = {};
+    reloadAfterCommunication = false;
+    sessionStorage.removeItem('cb_admin');
+  }
 
   function api(path, options) {
     options = options || {};
+    var requestToken = tokenInput.value.trim();
+    var requestBoardVersion = boardLoadVersion;
     options.headers = Object.assign({
-      authorization: 'Bearer ' + tokenInput.value.trim(),
+      authorization: 'Bearer ' + requestToken,
       'content-type': 'application/json'
     }, options.headers || {});
     return fetch(path, options).then(function (res) {
@@ -129,6 +143,12 @@
         if (!res.ok) {
           var error = new Error(body.error || ('http_' + res.status));
           error.confirmed = true;
+          error.boardVersion = requestBoardVersion;
+          if (res.status === 401 && requestBoardVersion === boardLoadVersion &&
+              requestToken === tokenInput.value.trim()) {
+            clearPrivateBoard();
+            error.boardVersion = boardLoadVersion;
+          }
           throw error;
         }
         return body;
@@ -518,6 +538,13 @@
       f.status + ' · ' + f.upvotes + ' up · ' + f.downvotes + ' down'));
     item.appendChild(head);
     if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+    if (f.contactEmail || f.contactDiscord) {
+      var contact = make('div', 'private-contact');
+      contact.appendChild(make('strong', null, 'Contact · Admin only'));
+      if (f.contactEmail) contact.appendChild(make('p', 'contact-email', 'Email: ' + f.contactEmail));
+      if (f.contactDiscord) contact.appendChild(make('p', 'contact-discord', 'Discord: ' + f.contactDiscord));
+      item.appendChild(contact);
+    }
     var recommendation = f.review ? {
       approve: 'Approved', decline: 'Declined',
       human: f.status === 'pending' ? 'Needs your review' : 'Suggested human review'
@@ -607,16 +634,28 @@
   }
 
   function load() {
+    if (!tokenInput.value.trim()) {
+      clearPrivateBoard();
+      status.textContent = 'Enter the admin token first.';
+      return;
+    }
     if (activeCommunicationRequests) {
       reloadAfterCommunication = true;
       status.textContent = 'A change is still saving. The board will refresh when it finishes.';
       return;
     }
-    if (!tokenInput.value.trim()) { status.textContent = 'Enter the admin token first.'; return; }
-    sessionStorage.setItem('cb_admin', tokenInput.value.trim());
+    var requestedToken = tokenInput.value.trim();
+    var loadVersion = ++boardLoadVersion;
+    sessionStorage.setItem('cb_admin', requestedToken);
     status.textContent = 'Loading…';
-    api('/api/board/admin').then(function (data) { render(data.features, data.reviewEnabled); })
+    api('/api/board/admin').then(function (data) {
+      if (loadVersion === boardLoadVersion && requestedToken === tokenInput.value.trim()) {
+        render(data.features, data.reviewEnabled);
+      }
+    })
       .catch(function (err) {
+        var failureVersion = err.boardVersion === undefined ? loadVersion : err.boardVersion;
+        if (failureVersion !== boardLoadVersion || requestedToken !== tokenInput.value.trim()) return;
         status.textContent = err.message === 'unauthorized'
           ? 'That token was rejected.'
           : 'Could not load the board: ' + err.message;

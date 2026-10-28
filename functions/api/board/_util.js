@@ -63,6 +63,13 @@ const SCHEMA_STATEMENTS = [
     issue_url TEXT NOT NULL,
     FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
   )`,
+  // Contact details are private submission metadata, never public board content.
+  `CREATE TABLE IF NOT EXISTS feature_contacts (
+    feature_id INTEGER PRIMARY KEY,
+    email TEXT NOT NULL DEFAULT '',
+    discord TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+  )`,
 ];
 
 // Public statuses are visible on /roadmap/; votable ones accept directional votes.
@@ -73,6 +80,8 @@ export const LIMITS = {
   titleMin: 4,
   titleMax: 120,
   detailMax: 2000,
+  contactEmailMax: 254,
+  contactDiscordMax: 100,
   submissionsPerIpPerDay: 5,
   voteInsertsPerIpPerHour: 40,
   commentMax: 2000,
@@ -248,6 +257,23 @@ export function cleanText(value, maxLength) {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .trim()
     .slice(0, maxLength);
+}
+
+// Do not truncate or silently strip characters from a contact destination.
+// These values are displayed as plain text only in the authenticated admin UI.
+export function normalizeContact(value, maxLength) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  if (text.length > maxLength || /[\u0000-\u001F\u007F-\u009F\u2028\u2029]/.test(text)) return null;
+  return text;
+}
+
+export function normalizeContactEmail(value) {
+  const email = normalizeContact(value, LIMITS.contactEmailMax);
+  if (email === null || email === '') return email;
+  if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i.test(email)) return null;
+  return email;
 }
 
 // Store the issue itself even when an admin pastes a comment anchor or query.

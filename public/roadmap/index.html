@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png?v=4">
 <link rel="preload" href="/static/fonts/schibsted-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/reel-v4.css">
-<link rel="stylesheet" href="/static/roadmap-v3.css">
+<link rel="stylesheet" href="/static/roadmap-v4.css">
 <script src="/static/nav-menu-v1.js" defer></script>
 </head>
 <body class="roadmap-page">
@@ -146,6 +146,11 @@
         <input id="f-title" name="title" type="text" maxlength="120" minlength="4" required autocomplete="off" placeholder="One clear sentence">
         <label for="f-detail">Details <span class="opt">(optional)</span></label>
         <textarea id="f-detail" name="detail" maxlength="2000" placeholder="What problem does it solve? How should it work?"></textarea>
+        <label for="f-contact-email">Email <span class="opt">(optional)</span></label>
+        <input id="f-contact-email" name="contactEmail" type="email" maxlength="254" autocomplete="email" autocapitalize="none" spellcheck="false" aria-describedby="contact-note" placeholder="you@example.com">
+        <label for="f-contact-discord">Discord username <span class="opt">(optional)</span></label>
+        <input id="f-contact-discord" name="contactDiscord" type="text" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="contact-note" placeholder="Your Discord username">
+        <p class="fine" id="contact-note">Only the admin can see these. Add either if we can contact you with questions about your idea.</p>
         <div class="hp" aria-hidden="true">
           <label for="f-website">Website</label>
           <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
@@ -590,6 +595,8 @@
     var payload = {
       title: document.getElementById('f-title').value,
       detail: document.getElementById('f-detail').value,
+      contactEmail: document.getElementById('f-contact-email').value,
+      contactDiscord: document.getElementById('f-contact-discord').value,
       website: document.getElementById('f-website').value
     };
     if (turnstileWidgetId !== null) {
@@ -609,6 +616,8 @@
     }).catch(function (err) {
       var messages = {
         invalid_title: 'Give it a longer title so people know what they’re voting for.',
+        invalid_contact_email: 'Enter a valid email address, or leave it blank.',
+        invalid_contact_discord: 'Keep your Discord username to 100 characters on one line, or leave it blank.',
         rate_limited: 'That’s a lot of ideas for one day. Save the rest for tomorrow.',
         turnstile_failed: 'The bot check didn’t pass. Reload and try again.',
         board_unconfigured: 'The board is still being set up. Check back soon.'
