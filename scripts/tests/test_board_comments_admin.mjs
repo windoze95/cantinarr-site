@@ -39,6 +39,11 @@ async function page() {
     if (body.action === 'comment') comments.push({ ...comment(3), author: 'maintainer', body: body.body });
     if (body.action === 'approve_comment') comments.find((c) => c.id === body.commentId).status = 'approved';
     if (body.action === 'delete_comment') comments.splice(comments.findIndex((c) => c.id === body.commentId), 1);
+    if (body.action === 'link_issue') {
+      const url = body.url.trim().split(/[?#]/)[0];
+      server.features.find((f) => f.id === body.id).githubIssueUrl = url;
+      return response({ ok: true, githubIssueUrl: url });
+    }
     return response({ ok: true });
   };
   let read = async (url) => url === '/api/board/admin' ? response(server) : response({ comments, nextCursor: null });
@@ -225,4 +230,55 @@ test('board reload waits for an in-flight comment and preserves other drafts aft
   assert.equal(byId(p.card(2), 'response-2').value, 'Keep other draft');
   assert.equal(button(p.card(1), 'Post comment').disabled, false);
   assert.equal(p.calls.filter((call) => call.options?.method === 'POST').length, 1);
+});
+
+test('issue editor saves normalized links and removes them without resetting other drafts', async () => {
+  const p = await page(); const card = p.card(1);
+  const form = byClass(card, 'issue-editor');
+  const input = byId(card, 'issue-1');
+  assert.equal(form.children[0].attrs.for, 'issue-1');
+  assert.equal(button(card, 'Remove issue').hidden, true);
+  byId(p.card(2), 'response-2').value = 'Keep response draft';
+  byId(card, 'comment-1').value = 'Keep comment draft';
+  input.value = 'https://github.com/windoze95/cantinarr/issues/677#issuecomment-1';
+  submit(form); submit(form); await tick();
+  const writes = p.calls.filter((c) => c.options?.method === 'POST');
+  assert.equal(writes.length, 1);
+  assert.deepEqual(JSON.parse(writes[0].options.body), { id: 1, action: 'link_issue', url: 'https://github.com/windoze95/cantinarr/issues/677#issuecomment-1' });
+  assert.equal(input.value, 'https://github.com/windoze95/cantinarr/issues/677');
+  assert.equal(byClass(card, 'issue-open').href, input.value);
+  assert.equal(byClass(card, 'issue-open').target, '_blank');
+  assert.equal(byClass(card, 'issue-open').rel, 'noopener noreferrer');
+  assert.equal(button(card, 'Remove issue').hidden, false);
+  assert.equal(byId(p.card(2), 'response-2').value, 'Keep response draft');
+  assert.equal(byId(card, 'comment-1').value, 'Keep comment draft');
+  button(card, 'Remove issue').events.click(); await tick();
+  assert.equal(input.value, '');
+  assert.equal(byClass(card, 'issue-open').hidden, true);
+  assert.equal(p.server.features[0].githubIssueUrl, '');
+});
+
+test('issue drafts survive errors and status changes; full reload waits for an issue save', async () => {
+  const p = await page();
+  const draft = 'https://github.com/windoze95/cantinarr/issues/677';
+  byId(p.card(1), 'issue-1').value = draft;
+  button(p.card(2), 'Planned').events.click(); await tick();
+  assert.equal(byId(p.card(1), 'issue-1').value, draft);
+  p.setSend(async () => response({ error: 'invalid_issue_url' }, 400));
+  submit(byClass(p.card(1), 'issue-editor')); await tick();
+  assert.equal(byId(p.card(1), 'issue-1').value, draft);
+  assert.match(byClass(byClass(p.card(1), 'issue-editor'), 'thread-status').textContent, /Enter a GitHub issue URL/);
+  let finish;
+  p.setSend(() => new Promise((resolve) => { finish = () => {
+    p.server.features[0].githubIssueUrl = draft;
+    resolve(response({ ok: true, githubIssueUrl: draft }));
+  }; }));
+  const card = p.card(1);
+  submit(byClass(card, 'issue-editor'));
+  p.elements.load.events.click(); await tick();
+  assert.equal(p.card(1), card);
+  assert.equal(button(card, 'Save issue').disabled, true);
+  finish(); await tick();
+  assert.notEqual(p.card(1), card);
+  assert.equal(byId(p.card(1), 'issue-1').value, draft);
 });

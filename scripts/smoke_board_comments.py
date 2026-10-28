@@ -84,15 +84,31 @@ def main():
     act('open')
     act('respond', body=response_body)
 
+    # Optional GitHub issue association is independent of discussion content.
+    issue_url = 'https://github.com/windoze95/cantinarr/issues/677'
+    assert act('link_issue', url=issue_url + '#issuecomment-123')['githubIssueUrl'] == issue_url
+    public_feature = next(f for f in ok('/api/board')['features'] if f['id'] == feature_id)
+    assert public_feature['githubIssueUrl'] == issue_url
+    admin_feature = next(f for f in ok('/api/board/admin', admin=True)['features'] if f['id'] == feature_id)
+    assert admin_feature['githubIssueUrl'] == issue_url
+    assert api('/api/board/admin', {'id': feature_id, 'action': 'link_issue', 'url': issue_url})[0] == 401
+    assert api('/api/board/admin', {'id': feature_id, 'action': 'link_issue', 'url': 'javascript:alert(1)'}, admin=True)[0] == 400
+    act('link_issue', url='https://github.com/windoze95/cantinarr/issues/676')
+    assert next(f for f in ok('/api/board')['features'] if f['id'] == feature_id)['githubIssueUrl'].endswith('/676')
+    act('link_issue', url='')
+    assert next(f for f in ok('/api/board')['features'] if f['id'] == feature_id)['githubIssueUrl'] == ''
+    act('link_issue', url=issue_url)
+    assert len(ok(comments_path)['comments']) == 2
+
     # Delete a separate feature containing both comment and response fixtures.
     delete_title = 'Disposable discussion ' + uuid4().hex[:8]
     ok('/api/board/submit', {'title': delete_title})
     delete_id = next(f['id'] for f in ok('/api/board/admin', admin=True)['features'] if f['title'] == delete_title)
-    for action, fields in [('comment', {'body': 'Temporary comment'}), ('respond', {'body': 'Temporary response'}), ('delete', {})]:
+    for action, fields in [('comment', {'body': 'Temporary comment'}), ('respond', {'body': 'Temporary response'}), ('link_issue', {'url': issue_url}), ('delete', {})]:
         ok('/api/board/admin', {'id': delete_id, 'action': action, **fields}, admin=True)
     assert api('/api/board/comments?id=' + str(delete_id), admin=True)[0] == 404
     print(f'Local D1 comments smoke passed: private pending comments, moderation, maintainer comments, '
-          f'pinned response save/clear, cursor reads, shipped comments, auth and deletion. Fixture #{feature_id}.')
+          f'pinned response save/clear, GitHub issue links, cursor reads, shipped comments, auth and deletion. Fixture #{feature_id}.')
 
 
 if __name__ == '__main__':
