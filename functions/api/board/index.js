@@ -20,10 +20,13 @@ export async function onRequestGet(context) {
   const { results } = await db
     .prepare(
       `SELECT f.id, f.title, f.detail, f.status, f.created_at,
+        (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'approved') AS comment_count,
+        response.body AS maintainer_response, response.updated_at AS response_updated_at,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'up') AS upvotes,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'down') AS downvotes,
         (SELECT direction FROM votes v2 WHERE v2.feature_id = f.id AND v2.voter_id = ?1) AS vote
       FROM features f
+      LEFT JOIN feature_responses response ON response.feature_id = f.id
       WHERE f.status IN (${placeholders})
       ORDER BY upvotes DESC, f.created_at ASC`
     )
@@ -44,6 +47,9 @@ export async function onRequestGet(context) {
       votes: row.upvotes,
       voted: row.vote === 'up',
       createdAt: row.created_at,
+      commentCount: row.comment_count,
+      maintainerResponse: row.maintainer_response || '',
+      responseUpdatedAt: row.response_updated_at || null,
     })),
   }, { headers: existingVoter ? {} : { 'set-cookie': issueVoterCookie(voter, request) } });
 }

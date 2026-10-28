@@ -147,8 +147,10 @@ test('rate limit is atomic for insert races, while switching/removing existing v
   assert.deepEqual(racers.map((r) => r.status).sort(), [200, 429]);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS n FROM votes').get().n, 40);
   assert.equal((await cast(env, { id: 2, vote: 'up' })).status, 429);
-  totals(await cast(env, { id: 1, vote: 'down' }), 39, 1, 'down');
-  totals(await cast(env, { id: 1, vote: null }), 39, 0, null);
+  // Hashing is asynchronous, so either racer can reserve the last slot.
+  const winner = racers[0].status === 200 ? uid : uid2;
+  totals(await cast(env, { id: 1, vote: 'down' }, winner), 39, 1, 'down');
+  totals(await cast(env, { id: 1, vote: null }, winner), 39, 0, null);
 });
 
 test('legacy upvote toggles and compatibility aliases never count downvotes', async (t) => {

@@ -9,6 +9,7 @@
 - [ ] `REL-014` · P1 · SEC/UI — Run the static verifier, accessibility and keyboard checks, contrast and overflow review, and verify no secret, environment value, repo instruction, or local path enters `public/`. While iOS is awaiting review, confirm both the hero and download section explicitly say it is in App Store review and use TestFlight. Android's released state must use the public Google Play listing without beta wording or opt-in links.
 - [ ] `REL-015` · P1 · BOARD — Exercise `/roadmap/`: the list loads, the Shipped heading shows a prominent count matching the visible shipped items, separate Up and Down controls show independent totals (never a net score), selecting the opposite switches the anonymous vote, selecting the active direction clears it, and selection/totals survive a reload and back/forward navigation, a submission passes Turnstile and lands in the pending queue, admin approve/decline/status/delete flows work at `/roadmap/admin.html`, rate limits return friendly errors, and a wrong admin token is rejected. On the admin page, pending ideas appear first in age order, planned and open ideas by upvotes with both totals visible, then declined ideas; shipped ideas are collapsed under a prominent count. Already accepted ideas without a Luna review record do not say they are awaiting review. Check the count and Shipped disclosure at phone widths.
 - [ ] `REL-017` · P1 · BOARD — With a test `OPENAI_API_KEY`, submit clear in-scope and out-of-scope ideas and verify GPT-6 Luna automatically opens or declines them and records reasons in the admin queue. A partial overlap stays pending for human review; decline as a duplicate only when an existing item covers the entire request. Uncertain ideas and failed calls stay pending. Check that ntfy names the outcome (approved, denied, needs review, or review pending) once per completed attempt, that a later successful retry sends its final decision, and that a late AI result after an admin change does not claim an AI decision. Verify a failed review retries after the backoff on a later public or admin board load, an old pending idea gets reviewed on a board load, and unauthorized callers cannot see the decision reason. Without the key, submissions and manual moderation still work and ntfy says needs review.
+- [ ] `REL-018` · P1 · BOARD — Open an item's comments, submit an anonymous comment, and confirm it stays private until approved from the admin page. Check pagination, pending counts, approval/deletion, a public Maintainer comment from admin, wrong-token rejection, and shipped-item comments. Save, edit, and clear the separate maintainer response: it must remain visible on the card with comments collapsed and must never become a comment. Saving one card must preserve drafts on others. Check long text, literal HTML, keyboard labels/focus, Turnstile expiry/retry, rate-limit errors, and no overflow at 320px, 390px, and desktop widths.
 
 ## Local directional-vote checks
 
@@ -37,6 +38,41 @@ For the HTTP integration smoke, use a **disposable local D1 state directory**:
    overflow. Both buttons lock while a vote is in flight. A failed reply refreshes
    the item from the server; if that refresh also fails, voting stays locked until
    reload. Check a real rate-limit error as well as the automated failure cases.
+
+## Item comments and maintainer responses
+
+Against the same disposable local server, run
+`python3 scripts/smoke_board_comments.py`. It checks private pending comments,
+approval/deletion, admin comments, independent maintainer response save/clear,
+cursor reads, shipped-item discussion, authentication, and feature deletion.
+It leaves an open item with approved discussion and a pinned response for UI QA.
+
+Visitors can comment on open, planned, and shipped items without an account.
+Comments have a 2,000-character limit, a hidden honeypot, a separate Turnstile
+widget, and a salted IP-hash daily limit. They require manual admin approval;
+Luna continues reviewing feature requests only. Public comment reads expose
+only approved comments on public items. Authenticated admin reads include
+pending comments and support discussions on private items. Reads are paginated
+in ascending comment ID order, at most 50 at a time. IP hashes never appear in
+either response. A deleted comment does not reset the posting rate limit.
+
+The admin page can publish a comment labeled Maintainer and separately save,
+edit, or clear the item's maintainer response. Responses live in their own
+table and appear directly on the card above its comments disclosure. They do
+not count as comments. Comment and response tables are created additively by
+`ensureSchema`; existing features, votes, and reviews remain intact. Deleting
+an item removes its discussion and response.
+
+Inspect a public card with comments collapsed and expanded, submit a visitor
+comment, approve it in admin, then reload the public discussion. Check admin
+comment publication and the pinned response independently, including clearing
+the response without changing the discussion. Save or moderate one card while
+another contains a draft. Check long unbroken text and literal HTML at 320px,
+390px, and desktop widths. Use keyboard controls and check visible focus,
+status announcements, readable contrast, and reduced motion. Simulate a lost
+POST reply: drafts must remain, with no automatic retry or duplicate post.
+Run a configured Turnstile check in an authorized preview to confirm real
+challenge success, expiry, and retry; bootstrap local tests have no CAPTCHA.
 
 ## Schema and API compatibility
 

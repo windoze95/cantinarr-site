@@ -35,6 +35,7 @@
 .mod-empty { color: var(--muted); }
 .mod-list { list-style: none; display: grid; gap: 12px; padding: 0; }
 .mod-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+.mod-item { min-width: 0; }
 .mod-item h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: inline; overflow-wrap: anywhere; }
 .mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
 .mod-item .meta.pending { color: var(--signal); }
@@ -53,10 +54,27 @@
 }
 .mod-actions button:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); }
 .mod-actions button.danger { color: var(--signal); }
+.response-editor { margin-top: 20px; border-left: 3px solid var(--gold); padding-left: 15px; }
+.response-editor label, .comment-form label { display: block; font-weight: 600; margin-bottom: 7px; }
+.response-editor .hint, .comment-form .hint { color: var(--muted); font-size: .85rem; margin: 0 0 9px; }
+.mod-item textarea { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-height: 100px; resize: vertical; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--ink); font: inherit; font-size: .92rem; }
+.mod-item textarea:focus-visible, .mod-item button:focus-visible, .mod-comments summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.mod-item button:disabled { opacity: .55; cursor: wait; }
+.thread-status { color: var(--muted); font-size: .85rem; margin-top: 9px; overflow-wrap: anywhere; }
+.thread-status:empty { display: none; }
+.mod-comments { margin-top: 20px; border-top: 1px solid var(--border); }
+.mod-comments summary { cursor: pointer; color: var(--gold); padding: 13px 0; min-height: 44px; }
+.comment-list { list-style: none; padding: 0; }
+.comment-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.comment-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: .78rem; color: var(--muted); }
+.comment-meta strong { color: var(--gold); }
+.comment-pending { color: var(--signal); }
+.comment-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .92rem; margin-top: 7px; }
+.comment-form { margin-top: 18px; }
 .shipped-group { background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
-.shipped-group summary { display: flex; align-items: center; gap: 18px; cursor: pointer; list-style: none; }
-.shipped-group summary::-webkit-details-marker { display: none; }
-.shipped-group summary::marker { content: ''; }
+.shipped-group > summary { display: flex; align-items: center; gap: 18px; cursor: pointer; list-style: none; }
+.shipped-group > summary::-webkit-details-marker { display: none; }
+.shipped-group > summary::marker { content: ''; }
 .shipped-count { color: var(--gold); font-family: var(--display); font-size: clamp(2.4rem, 7vw, 3.2rem); line-height: 1; font-weight: 620; }
 .shipped-summary-copy { display: grid; line-height: 1.35; }
 .shipped-summary-copy strong { font-family: var(--display); font-size: 1.35rem; font-weight: 600; }
@@ -74,7 +92,7 @@
 <body>
 <main class="mod-wrap">
   <h1>Board moderation</h1>
-  <p class="sub">GPT-6 Luna reviews new ideas automatically. Handle uncertain ideas and manage the <a href="/roadmap/">roadmap</a> here. Requires the admin token.</p>
+  <p class="sub">GPT-6 Luna reviews new ideas automatically. Review visitor comments, post maintainer updates, and manage the <a href="/roadmap/">roadmap</a> here. Requires the admin token.</p>
   <div class="unlock">
     <input id="token" type="password" placeholder="Admin token" autocomplete="current-password">
     <button id="load" class="btn btn-gold" type="button">Load board</button>
@@ -91,6 +109,9 @@
   var status = document.getElementById('mod-status');
   var sections = document.getElementById('mod-sections');
   var shippedOpen = false;
+  var communicationDrafts = {};
+  var activeCommunicationRequests = 0;
+  var reloadAfterCommunication = false;
   tokenInput.value = sessionStorage.getItem('cb_admin') || '';
 
   function api(path, options) {
@@ -101,7 +122,11 @@
     }, options.headers || {});
     return fetch(path, options).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (body) {
-        if (!res.ok) throw new Error(body.error || ('http_' + res.status));
+        if (!res.ok) {
+          var error = new Error(body.error || ('http_' + res.status));
+          error.confirmed = true;
+          throw error;
+        }
         return body;
       });
     });
@@ -136,6 +161,282 @@
     return btn;
   }
 
+  function postAction(payload) {
+    return api('/api/board/admin', { method: 'POST', body: JSON.stringify(payload) })
+      .then(function (result) {
+        if (result.ok !== true) throw new Error('unconfirmed_reply');
+        return result;
+      });
+  }
+
+  function threadStatus() {
+    var message = make('p', 'thread-status');
+    message.setAttribute('role', 'status');
+    return message;
+  }
+
+  function fieldLabel(text, id) {
+    var label = make('label', null, text);
+    label.setAttribute('for', id);
+    return label;
+  }
+
+  function captureCommunicationDrafts() {
+    Object.keys(communicationDrafts).forEach(function (id) {
+      var draft = communicationDrafts[id];
+      if (!draft.view) return;
+      if (draft.view.response.value === draft.view.savedResponse) delete draft.response;
+      else draft.response = draft.view.response.value;
+      draft.comment = draft.view.comment.value;
+      draft.open = draft.view.comments.open;
+    });
+  }
+
+  function finishCommunicationRequest() {
+    activeCommunicationRequests -= 1;
+    if (!activeCommunicationRequests && reloadAfterCommunication) {
+      reloadAfterCommunication = false;
+      load();
+    }
+  }
+
+  function addCommunication(item, f) {
+    var draft = communicationDrafts[f.id] || (communicationDrafts[f.id] = {});
+    var responseForm = make('form', 'response-editor');
+    var responseId = 'response-' + f.id;
+    responseForm.appendChild(fieldLabel('Maintainer response', responseId));
+    responseForm.appendChild(make('p', 'hint', 'Pinned on the public card, above the comments.'));
+    var responseInput = make('textarea');
+    responseInput.id = responseId;
+    responseInput.maxLength = 2000;
+    responseInput.rows = 3;
+    responseInput.value = draft.response !== undefined ? draft.response : (f.maintainerResponse || '');
+    responseForm.appendChild(responseInput);
+    var responseActions = make('div', 'mod-actions');
+    var saveResponse = make('button', null, 'Save response');
+    saveResponse.type = 'submit';
+    var clearResponse = make('button', 'danger', 'Remove response');
+    clearResponse.type = 'button';
+    clearResponse.hidden = !f.maintainerResponse;
+    responseActions.appendChild(saveResponse);
+    responseActions.appendChild(clearResponse);
+    responseForm.appendChild(responseActions);
+    var responseStatus = threadStatus();
+    responseForm.appendChild(responseStatus);
+    item.appendChild(responseForm);
+    var savingResponse = false;
+
+    function savePinned(value) {
+      if (savingResponse) return;
+      savingResponse = true;
+      activeCommunicationRequests += 1;
+      responseInput.disabled = saveResponse.disabled = clearResponse.disabled = true;
+      responseStatus.textContent = 'Saving…';
+      postAction({ id: f.id, action: 'respond', body: value }).then(function () {
+        f.maintainerResponse = value.trim();
+        responseInput.value = f.maintainerResponse;
+        draft.view.savedResponse = f.maintainerResponse;
+        delete draft.response;
+        clearResponse.hidden = !f.maintainerResponse;
+        responseStatus.textContent = f.maintainerResponse ? 'Response saved on the card.' : 'Response removed.';
+      }).catch(function (err) {
+        responseStatus.textContent = err.confirmed
+          ? 'Could not save the response: ' + err.message + '. Your draft is still here.'
+          : 'Could not confirm the save. Reload the board to check the saved response. Your draft is still here.';
+      }).finally(function () {
+        savingResponse = false;
+        responseInput.disabled = saveResponse.disabled = clearResponse.disabled = false;
+        finishCommunicationRequest();
+      });
+    }
+    responseForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      savePinned(responseInput.value);
+    });
+    clearResponse.addEventListener('click', function () { savePinned(''); });
+
+    var comments = make('details', 'mod-comments');
+    comments.open = Boolean(draft.open);
+    var summary = make('summary');
+    comments.appendChild(summary);
+    function updateSummary() {
+      summary.textContent = 'Comments (' + (f.commentCount || 0) + ' published' +
+        (f.pendingCommentCount ? ', ' + f.pendingCommentCount + ' pending' : '') + ')';
+    }
+    updateSummary();
+    var list = make('ul', 'comment-list');
+    comments.appendChild(list);
+    var commentStatus = threadStatus();
+    comments.appendChild(commentStatus);
+    var readActions = make('div', 'mod-actions');
+    var more = make('button', null, 'Load more comments');
+    more.type = 'button';
+    more.hidden = true;
+    var refresh = make('button', null, 'Refresh comments');
+    refresh.type = 'button';
+    readActions.appendChild(more);
+    readActions.appendChild(refresh);
+    comments.appendChild(readActions);
+    var commentForm = make('form', 'comment-form');
+    var commentId = 'comment-' + f.id;
+    commentForm.appendChild(fieldLabel('Comment as maintainer', commentId));
+    commentForm.appendChild(make('p', 'hint', 'Published in the conversation. Use the response above for a pinned update.'));
+    var commentInput = make('textarea');
+    commentInput.id = commentId;
+    commentInput.maxLength = 2000;
+    commentInput.rows = 3;
+    commentInput.required = true;
+    commentInput.value = draft.comment || '';
+    commentForm.appendChild(commentInput);
+    var postActions = make('div', 'mod-actions');
+    var post = make('button', null, 'Post comment');
+    post.type = 'submit';
+    postActions.appendChild(post);
+    commentForm.appendChild(postActions);
+    var postStatus = threadStatus();
+    commentForm.appendChild(postStatus);
+    comments.appendChild(commentForm);
+    item.appendChild(comments);
+    var loaded = false;
+    var loading = false;
+    var posting = false;
+    var uncertainPost = Boolean(draft.uncertainPost);
+    post.disabled = uncertainPost;
+    if (uncertainPost) postStatus.textContent = 'Could not confirm the post. Refresh comments and check for your comment before posting again. Your draft is still here.';
+    draft.view = { response: responseInput, savedResponse: f.maintainerResponse || '', comment: commentInput, comments: comments };
+    var cursor = null;
+    var renderedIds = {};
+
+    function commentAction(button, comment, action, row, meta) {
+      if (button.disabled) return;
+      button.disabled = true;
+      activeCommunicationRequests += 1;
+      postAction({ id: f.id, action: action, commentId: comment.id }).then(function () {
+        if (action === 'approve_comment') {
+          comment.status = 'approved';
+          f.pendingCommentCount = Math.max(0, (f.pendingCommentCount || 0) - 1);
+          f.commentCount = (f.commentCount || 0) + 1;
+          meta.textContent = 'Published';
+          meta.className = '';
+          button.hidden = true;
+          commentStatus.textContent = 'Comment approved.';
+        } else {
+          if (Array.prototype.indexOf.call(list.children, row) !== -1) list.removeChild(row);
+          if (comment.status === 'pending') f.pendingCommentCount = Math.max(0, (f.pendingCommentCount || 0) - 1);
+          else f.commentCount = Math.max(0, (f.commentCount || 0) - 1);
+          commentStatus.textContent = 'Comment deleted.';
+        }
+        updateSummary();
+      }).catch(function (err) {
+        commentStatus.textContent = 'Could not confirm the change. Refresh comments to check before trying again.';
+      }).finally(function () { button.disabled = false; finishCommunicationRequest(); });
+    }
+
+    function renderComment(comment) {
+      if (renderedIds[comment.id]) return;
+      renderedIds[comment.id] = true;
+      var row = make('li', 'comment-item');
+      var meta = make('div', 'comment-meta');
+      meta.appendChild(make('strong', null, comment.author === 'maintainer' ? 'Maintainer' : 'Visitor'));
+      var time = make('time', null, new Date(comment.createdAt).toLocaleString());
+      time.setAttribute('datetime', comment.createdAt);
+      meta.appendChild(time);
+      var state = make('span', comment.status === 'pending' ? 'comment-pending' : '',
+        comment.status === 'pending' ? 'Pending review' : 'Published');
+      meta.appendChild(state);
+      row.appendChild(meta);
+      row.appendChild(make('p', 'comment-body', comment.body));
+      var actions = make('div', 'mod-actions');
+      if (comment.status === 'pending') {
+        var approve = make('button', null, 'Approve comment');
+        approve.type = 'button';
+        approve.addEventListener('click', function () { commentAction(approve, comment, 'approve_comment', row, state); });
+        actions.appendChild(approve);
+      }
+      var remove = make('button', 'danger', 'Delete comment');
+      remove.type = 'button';
+      remove.addEventListener('click', function () {
+        if (remove.dataset.armed === '1') {
+          commentAction(remove, comment, 'delete_comment', row, state);
+          return;
+        }
+        remove.dataset.armed = '1';
+        remove.textContent = 'Confirm delete comment';
+        setTimeout(function () { remove.dataset.armed = ''; remove.textContent = 'Delete comment'; }, 4000);
+      });
+      actions.appendChild(remove);
+      row.appendChild(actions);
+      list.appendChild(row);
+    }
+
+    function readComments(append, manual) {
+      if (loading) return;
+      loading = true;
+      post.disabled = true;
+      more.disabled = refresh.disabled = true;
+      commentStatus.textContent = 'Loading comments…';
+      return api('/api/board/comments?id=' + f.id + (append && cursor ? '&after=' + cursor : ''), { cache: 'no-store' })
+        .then(function (data) {
+          if (!Array.isArray(data.comments)) throw new Error('invalid_comments');
+          if (!append) { list.textContent = ''; renderedIds = {}; }
+          data.comments.forEach(renderComment);
+          cursor = data.nextCursor;
+          more.hidden = cursor === null || cursor === undefined;
+          loaded = true;
+          commentStatus.textContent = list.children.length ? '' : 'No comments yet.';
+          if (manual && uncertainPost) {
+            uncertainPost = false;
+            draft.uncertainPost = false;
+            post.disabled = posting;
+            postStatus.textContent = 'Comments refreshed. Check for your comment on all pages before posting again.';
+          }
+        }).catch(function () {
+          commentStatus.textContent = 'Could not load comments. Refresh comments to try again.';
+        }).finally(function () {
+          loading = false;
+          more.disabled = refresh.disabled = false;
+          post.disabled = posting || uncertainPost;
+        });
+    }
+    comments.addEventListener('toggle', function () {
+      if (comments.open && !loaded) readComments(false, false);
+    });
+    more.addEventListener('click', function () { if (!posting) readComments(true, false); });
+    refresh.addEventListener('click', function () { if (!posting) readComments(false, true); });
+    commentForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (posting || uncertainPost || loading) return;
+      var body = commentInput.value.trim();
+      if (!body) { postStatus.textContent = 'Write a comment first.'; return; }
+      posting = true;
+      activeCommunicationRequests += 1;
+      commentInput.disabled = post.disabled = more.disabled = refresh.disabled = true;
+      postStatus.textContent = 'Posting…';
+      postAction({ id: f.id, action: 'comment', body: body }).then(function () {
+        commentInput.value = '';
+        draft.comment = '';
+        f.commentCount = (f.commentCount || 0) + 1;
+        updateSummary();
+        postStatus.textContent = 'Comment published as maintainer.';
+        return readComments(false, false);
+      }).catch(function (err) {
+        if (err.confirmed) postStatus.textContent = 'Could not post the comment: ' + err.message + '. Your draft is still here.';
+        else {
+          uncertainPost = true;
+          draft.uncertainPost = true;
+          postStatus.textContent = 'Could not confirm the post. Refresh comments and check for your comment before posting again. Your draft is still here.';
+        }
+      }).finally(function () {
+        posting = false;
+        commentInput.disabled = false;
+        more.disabled = refresh.disabled = loading;
+        post.disabled = uncertainPost;
+        finishCommunicationRequest();
+      });
+    });
+    if (comments.open) readComments(false, false);
+  }
+
   function renderItem(f, reviewEnabled) {
     var item = make('li', 'mod-item');
     var head = make('div');
@@ -164,10 +465,20 @@
     if (f.status !== 'declined') actions.appendChild(actionButton('Decline', f.id, 'decline', true));
     actions.appendChild(actionButton('Delete', f.id, 'delete', true));
     item.appendChild(actions);
+    addCommunication(item, f);
     return item;
   }
 
   function render(features, reviewEnabled) {
+    if (activeCommunicationRequests) {
+      reloadAfterCommunication = true;
+      status.textContent = 'A comment or response is still sending. The board will refresh when it finishes.';
+      return;
+    }
+    captureCommunicationDrafts();
+    Object.keys(communicationDrafts).forEach(function (id) {
+      if (!features.some(function (feature) { return String(feature.id) === id; })) delete communicationDrafts[id];
+    });
     sections.textContent = '';
     var groups = { pending: [], planned: [], open: [], declined: [], shipped: [] };
     features.forEach(function (f) {
@@ -223,6 +534,11 @@
   }
 
   function load() {
+    if (activeCommunicationRequests) {
+      reloadAfterCommunication = true;
+      status.textContent = 'A comment or response is still sending. The board will refresh when it finishes.';
+      return;
+    }
     if (!tokenInput.value.trim()) { status.textContent = 'Enter the admin token first.'; return; }
     sessionStorage.setItem('cb_admin', tokenInput.value.trim());
     status.textContent = 'Loading…';
