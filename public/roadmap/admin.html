@@ -9,7 +9,7 @@
 <link rel="icon" href="/static/favicon.png?v=4" type="image/png">
 <link rel="stylesheet" href="/site.css?v=mobile-nav-1">
 <style>
-.mod-wrap { max-width: 860px; margin: 0 auto; padding: 60px 24px 90px; }
+.mod-wrap { max-width: 1640px; margin: 0 auto; padding: 40px 24px 70px; }
 .mod-wrap h1 { font-family: var(--display); font-weight: 620; font-size: 2rem; margin-bottom: 8px; }
 .mod-wrap .sub { color: var(--muted); margin-bottom: 28px; }
 .unlock { display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
@@ -27,19 +27,15 @@
 .unlock .btn { border: 0; cursor: pointer; font-family: var(--body); }
 #mod-status { color: var(--muted); margin-bottom: 18px; }
 #mod-status:empty { display: none; }
-.mod-sections { display: grid; gap: 34px; }
-.mod-group { padding: 0; }
-.mod-group-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; padding-bottom: 8px; }
-.mod-group-head h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; }
-.mod-group-count { color: var(--gold); font-family: var(--mono); font-size: .88rem; }
-.mod-empty { color: var(--muted); }
-.mod-list { list-style: none; display: grid; gap: 12px; padding: 0; }
-.mod-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+.mod-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; }
 .mod-item { min-width: 0; }
-.mod-item h3 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; display: inline; overflow-wrap: anywhere; }
-.mod-item .meta { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: var(--gold); margin-left: 10px; }
+.mod-item h3 { font-family: var(--body); font-weight: 600; font-size: 1rem; line-height: 1.4; overflow-wrap: anywhere; }
+.mod-item .meta { font-size: .78rem; color: var(--gold); margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
 .mod-item .meta.pending { color: var(--signal); }
-.mod-item .detail { color: var(--muted); font-size: .92rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
+.mod-item .detail { color: var(--muted); font-size: .88rem; margin-top: 8px; white-space: pre-line; overflow-wrap: anywhere; }
+.manage-panel { margin-top: 12px; border-top: 1px solid var(--border); }
+.manage-panel > summary { cursor: pointer; color: var(--gold); min-height: 44px; padding-block: 12px; font-size: .88rem; }
+.mod-votes { font-variant-numeric: tabular-nums; }
 .private-contact { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: .88rem; overflow-wrap: anywhere; }
 .private-contact strong { color: var(--gold); }
 .private-contact p { margin-top: 6px; }
@@ -49,10 +45,11 @@
 .mod-actions button {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 5px;
   color: var(--ink);
   font-size: .85rem;
-  padding: 7px 12px;
+  padding: 10px 12px;
+  min-height: 44px;
   cursor: pointer;
 }
 .mod-actions button:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); }
@@ -64,7 +61,7 @@
 .issue-editor input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 16px; }
 .issue-editor .mod-actions { align-items: center; }
 .issue-open { font-size: .85rem; padding: 7px 0; }
-.mod-item textarea { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-height: 100px; resize: vertical; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--ink); font: inherit; font-size: .92rem; }
+.mod-item textarea { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-height: 100px; resize: vertical; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--ink); font: inherit; font-size: 16px; }
 .mod-item textarea:focus-visible, .mod-item button:focus-visible, .mod-comments summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .mod-item button:disabled { opacity: .55; cursor: wait; }
 .thread-status { color: var(--muted); font-size: .85rem; margin-top: 9px; overflow-wrap: anywhere; }
@@ -78,36 +75,27 @@
 .comment-pending { color: var(--signal); }
 .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .92rem; margin-top: 7px; }
 .comment-form { margin-top: 18px; }
-.shipped-group { background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
-.shipped-group > summary { display: flex; align-items: center; gap: 18px; cursor: pointer; list-style: none; }
-.shipped-group > summary::-webkit-details-marker { display: none; }
-.shipped-group > summary::marker { content: ''; }
-.shipped-count { color: var(--gold); font-family: var(--display); font-size: clamp(2.4rem, 7vw, 3.2rem); line-height: 1; font-weight: 620; }
-.shipped-summary-copy { display: grid; line-height: 1.35; }
-.shipped-summary-copy strong { font-family: var(--display); font-size: 1.35rem; font-weight: 600; }
-.shipped-summary-copy span { color: var(--muted); font-size: .9rem; }
-.shipped-summary-copy .hide-copy, .shipped-group[open] .show-copy { display: none; }
-.shipped-group[open] .hide-copy { display: inline; }
-.shipped-group .mod-list { margin-top: 20px; }
 @media (max-width: 600px) {
-  .mod-wrap { padding: 36px 18px 70px; }
-  .mod-item { padding: 16px; }
-  .mod-item .meta { display: block; margin-left: 0; margin-top: 4px; }
+  .mod-wrap { padding: 24px 16px 50px; }
+  .unlock input { min-width: 0; width: 100%; }
 }
 </style>
+<link rel="stylesheet" href="/static/board-workspace-v1.css">
 </head>
-<body>
+<body class="roadmap-admin">
 <main class="mod-wrap">
   <h1>Board moderation</h1>
-  <p class="sub">GPT-6 Luna reviews new ideas automatically. Review visitor comments, post maintainer updates, and manage the <a href="/roadmap/">roadmap</a> here. Requires the admin token.</p>
+  <p class="sub">Review ideas and comments, link issues, and post updates. <a href="/roadmap/">View public roadmap</a>.</p>
   <div class="unlock">
-    <input id="token" type="password" placeholder="Admin token" autocomplete="current-password">
+    <input id="token" type="password" placeholder="Admin token" aria-label="Admin token" autocomplete="current-password">
     <button id="load" class="btn btn-gold" type="button">Load board</button>
   </div>
   <p id="mod-status" role="status"></p>
+  <div id="mod-controls" hidden></div>
   <div id="mod-sections" class="mod-sections"></div>
 </main>
 
+<script src="/static/board-view-v1.js"></script>
 <script>
 (function () {
   'use strict';
@@ -115,16 +103,29 @@
   var tokenInput = document.getElementById('token');
   var status = document.getElementById('mod-status');
   var sections = document.getElementById('mod-sections');
-  var shippedOpen = false;
+  var reviewEnabled = false;
   var communicationDrafts = {};
   var activeCommunicationRequests = 0;
   var reloadAfterCommunication = false;
   var boardLoadVersion = 0;
+  var boardView = window.RoadmapBoard.create({
+    root: sections,
+    controls: document.getElementById('mod-controls'),
+    admin: true,
+    statuses: [
+      { value: 'pending', label: 'Pending review' },
+      { value: 'open', label: 'Open' },
+      { value: 'planned', label: 'Planned' },
+      { value: 'shipped', label: 'Shipped' },
+      { value: 'declined', label: 'Declined' }
+    ],
+    renderItem: renderItem
+  });
   tokenInput.value = sessionStorage.getItem('cb_admin') || '';
 
   function clearPrivateBoard() {
     boardLoadVersion += 1;
-    sections.textContent = '';
+    boardView.clear();
     communicationDrafts = {};
     reloadAfterCommunication = false;
     sessionStorage.removeItem('cb_admin');
@@ -215,6 +216,7 @@
       else draft.issue = draft.view.issue.value;
       draft.comment = draft.view.comment.value;
       draft.open = draft.view.comments.open;
+      draft.manageOpen = draft.view.manage.open;
     });
   }
 
@@ -226,7 +228,7 @@
     }
   }
 
-  function addCommunication(item, f) {
+  function addCommunication(item, f, updateCard) {
     var draft = communicationDrafts[f.id] || (communicationDrafts[f.id] = {});
     var issueForm = make('form', 'issue-editor');
     var issueId = 'issue-' + f.id;
@@ -278,6 +280,7 @@
         draft.view.savedIssue = f.githubIssueUrl;
         delete draft.issue;
         updateIssueLink();
+        updateCard();
         issueStatus.textContent = f.githubIssueUrl ? 'GitHub issue linked.' : 'GitHub issue removed.';
       }).catch(function (err) {
         issueStatus.textContent = err.message === 'invalid_issue_url'
@@ -330,6 +333,7 @@
         draft.view.savedResponse = f.maintainerResponse;
         delete draft.response;
         clearResponse.hidden = !f.maintainerResponse;
+        updateCard();
         responseStatus.textContent = f.maintainerResponse ? 'Response saved on the card.' : 'Response removed.';
       }).catch(function (err) {
         responseStatus.textContent = err.confirmed
@@ -396,7 +400,8 @@
     post.disabled = uncertainPost;
     if (uncertainPost) postStatus.textContent = 'Could not confirm the post. Refresh comments and check for your comment before posting again. Your draft is still here.';
     draft.view = { response: responseInput, savedResponse: f.maintainerResponse || '',
-      issue: issueInput, savedIssue: f.githubIssueUrl || '', comment: commentInput, comments: comments };
+      issue: issueInput, savedIssue: f.githubIssueUrl || '', comment: commentInput, comments: comments,
+      manage: item };
     var cursor = null;
     var renderedIds = {};
 
@@ -420,6 +425,7 @@
           commentStatus.textContent = 'Comment deleted.';
         }
         updateSummary();
+        updateCard();
       }).catch(function (err) {
         commentStatus.textContent = 'Could not confirm the change. Refresh comments to check before trying again.';
       }).finally(function () { button.disabled = false; finishCommunicationRequest(); });
@@ -510,6 +516,7 @@
         draft.comment = '';
         f.commentCount = (f.commentCount || 0) + 1;
         updateSummary();
+        updateCard();
         postStatus.textContent = 'Comment published as maintainer.';
         return readComments(false, false);
       }).catch(function (err) {
@@ -530,20 +537,96 @@
     if (comments.open) readComments(false, false);
   }
 
-  function renderItem(f, reviewEnabled) {
+  function renderItem(f) {
+    var draft = communicationDrafts[f.id] || (communicationDrafts[f.id] = {});
     var item = make('li', 'mod-item');
-    var head = make('div');
-    head.appendChild(make('h3', null, f.title));
-    head.appendChild(make('span', 'meta' + (f.status === 'pending' ? ' pending' : ''),
-      f.status + ' · ' + f.upvotes + ' up · ' + f.downvotes + ' down'));
+    var head = make('div', 'item-head');
+    var title = make('h3', 'item-title item-preview' + (draft.detailsExpanded ? ' expanded' : ''), f.title);
+    title.id = 'request-title-' + f.id;
+    head.appendChild(title);
+    var meta = make('div', 'meta' + (f.status === 'pending' ? ' pending' : ''));
+    meta.appendChild(make('span', 'request-status', {
+      pending: 'Pending review', open: 'Open', planned: 'Planned', shipped: 'Shipped', declined: 'Declined'
+    }[f.status] || f.status));
+    meta.appendChild(make('span', 'mod-votes', f.upvotes + ' up / ' + f.downvotes + ' down'));
+    head.appendChild(meta);
     item.appendChild(head);
-    if (f.detail) item.appendChild(make('p', 'detail', f.detail));
+    var detail = make('p', 'detail item-preview' + (draft.detailsExpanded ? ' expanded' : ''), f.detail || '');
+    detail.id = 'request-detail-' + f.id;
+    if (f.detail) item.appendChild(detail);
+    {
+      var expand = make('button', 'item-expand', draft.detailsExpanded ? 'Show less' : 'Show details');
+      expand.type = 'button';
+      expand.setAttribute('aria-expanded', draft.detailsExpanded ? 'true' : 'false');
+      expand.setAttribute('aria-controls', title.id + (f.detail ? ' ' + detail.id : ''));
+      expand.setAttribute('aria-label', 'Show details for “' + f.title + '”');
+      expand.addEventListener('click', function () {
+        draft.detailsExpanded = !draft.detailsExpanded;
+        title.className = 'item-title item-preview' + (draft.detailsExpanded ? ' expanded' : '');
+        detail.className = 'detail item-preview' + (draft.detailsExpanded ? ' expanded' : '');
+        expand.textContent = draft.detailsExpanded ? 'Show less' : 'Show details';
+        expand.setAttribute('aria-expanded', draft.detailsExpanded ? 'true' : 'false');
+        expand.setAttribute('aria-label', (draft.detailsExpanded ? 'Hide details for “' : 'Show details for “') + f.title + '”');
+      });
+      item.appendChild(expand);
+    }
+    var metadata = make('div', 'board-metadata');
+    item.appendChild(metadata);
+    var response = make('section', 'maintainer-response');
+    response.setAttribute('aria-label', 'Maintainer response');
+    response.appendChild(make('strong', 'response-label', 'Maintainer response'));
+    var responseText = make('p', 'item-preview' + (draft.responseExpanded ? ' expanded' : ''));
+    responseText.id = 'response-preview-' + f.id;
+    response.appendChild(responseText);
+    var expandResponse = make('button', 'item-expand', draft.responseExpanded ? 'Show less response' : 'Read full response');
+    expandResponse.type = 'button';
+    expandResponse.setAttribute('aria-controls', responseText.id);
+    expandResponse.setAttribute('aria-expanded', draft.responseExpanded ? 'true' : 'false');
+    expandResponse.addEventListener('click', function () {
+      draft.responseExpanded = !draft.responseExpanded;
+      responseText.className = 'item-preview' + (draft.responseExpanded ? ' expanded' : '');
+      expandResponse.textContent = draft.responseExpanded ? 'Show less response' : 'Read full response';
+      expandResponse.setAttribute('aria-expanded', draft.responseExpanded ? 'true' : 'false');
+    });
+    response.appendChild(expandResponse);
+    item.appendChild(response);
+
+    function updateCard(refresh) {
+      metadata.textContent = '';
+      var issue = typeof f.githubIssueUrl === 'string' && f.githubIssueUrl.match(
+        /^https:\/\/github\.com\/([a-z0-9][a-z0-9-]*)\/([a-z0-9_.-]+)\/issues\/([1-9]\d*)$/i);
+      if (issue) {
+        var issueLink = make('a', 'metadata-chip', 'Issue #' + issue[3]);
+        issueLink.href = f.githubIssueUrl;
+        issueLink.target = '_blank';
+        issueLink.rel = 'noopener noreferrer';
+        issueLink.setAttribute('aria-label', 'Open ' + issue[1] + '/' + issue[2] + '#' + issue[3] + ' on GitHub in a new tab');
+        metadata.appendChild(issueLink);
+      } else metadata.appendChild(make('span', 'metadata-chip missing', 'No issue'));
+      metadata.appendChild(make('span', 'metadata-chip' + (f.maintainerResponse ? '' : ' missing'),
+        f.maintainerResponse ? 'Has response' : 'No response'));
+      metadata.appendChild(make('span', 'metadata-chip', (f.commentCount || 0) + ((f.commentCount || 0) === 1 ? ' comment' : ' comments')));
+      if (f.pendingCommentCount) metadata.appendChild(make('span', 'metadata-chip pending',
+        f.pendingCommentCount + (f.pendingCommentCount === 1 ? ' pending comment' : ' pending comments')));
+      metadata.appendChild(make('span', 'metadata-chip' + (f.contactEmail || f.contactDiscord ? '' : ' missing'),
+        f.contactEmail || f.contactDiscord ? 'Contact provided' : 'No contact'));
+      response.hidden = !f.maintainerResponse;
+      responseText.textContent = f.maintainerResponse || '';
+      if (refresh !== false) boardView.refresh();
+    }
+    updateCard(false);
+
+    var manage = make('details', 'manage-panel');
+    manage.open = Boolean(draft.manageOpen);
+    var manageSummary = make('summary', null, 'Manage request');
+    manageSummary.setAttribute('aria-label', 'Manage “' + f.title + '”');
+    manage.appendChild(manageSummary);
     if (f.contactEmail || f.contactDiscord) {
       var contact = make('div', 'private-contact');
       contact.appendChild(make('strong', null, 'Contact · Admin only'));
       if (f.contactEmail) contact.appendChild(make('p', 'contact-email', 'Email: ' + f.contactEmail));
       if (f.contactDiscord) contact.appendChild(make('p', 'contact-discord', 'Discord: ' + f.contactDiscord));
-      item.appendChild(contact);
+      manage.appendChild(contact);
     }
     var recommendation = f.review ? {
       approve: 'Approved', decline: 'Declined',
@@ -555,21 +638,24 @@
         (!reviewEnabled ? 'Luna review is not configured' :
           (f.reviewState === 'waiting' ? 'Luna review will retry' : 'Awaiting Luna review'))));
       if (f.review) review.appendChild(document.createTextNode(' · ' + f.review.reason));
-      item.appendChild(review);
+      manage.appendChild(review);
     }
     var actions = make('div', 'mod-actions');
+    actions.setAttribute('role', 'group');
+    actions.setAttribute('aria-label', 'Change request status');
     if (f.status === 'pending') actions.appendChild(actionButton('Approve', f.id, 'approve'));
     if (f.status !== 'open' && f.status !== 'pending') actions.appendChild(actionButton('Reopen', f.id, 'open'));
     if (f.status !== 'planned') actions.appendChild(actionButton('Planned', f.id, 'planned'));
     if (f.status !== 'shipped') actions.appendChild(actionButton('Shipped', f.id, 'shipped'));
     if (f.status !== 'declined') actions.appendChild(actionButton('Decline', f.id, 'decline', true));
     actions.appendChild(actionButton('Delete', f.id, 'delete', true));
-    item.appendChild(actions);
-    addCommunication(item, f);
+    manage.appendChild(actions);
+    addCommunication(manage, f, updateCard);
+    item.appendChild(manage);
     return item;
   }
 
-  function render(features, reviewEnabled) {
+  function render(features, enabled) {
     if (activeCommunicationRequests) {
       reloadAfterCommunication = true;
       status.textContent = 'A change is still saving. The board will refresh when it finishes.';
@@ -579,57 +665,8 @@
     Object.keys(communicationDrafts).forEach(function (id) {
       if (!features.some(function (feature) { return String(feature.id) === id; })) delete communicationDrafts[id];
     });
-    sections.textContent = '';
-    var groups = { pending: [], planned: [], open: [], declined: [], shipped: [] };
-    features.forEach(function (f) {
-      if (groups[f.status]) groups[f.status].push(f);
-    });
-    function newest(a, b) { return b.createdAt.localeCompare(a.createdAt) || b.id - a.id; }
-    function oldest(a, b) { return a.createdAt.localeCompare(b.createdAt) || a.id - b.id; }
-    function mostVotes(a, b) { return b.upvotes - a.upvotes || newest(a, b); }
-    groups.pending.sort(oldest);
-    groups.planned.sort(mostVotes);
-    groups.open.sort(mostVotes);
-    groups.declined.sort(newest);
-    groups.shipped.sort(newest);
-
-    function addGroup(label, items, always) {
-      if (!items.length && !always) return;
-      var group = make('section', 'mod-group');
-      var head = make('div', 'mod-group-head');
-      head.appendChild(make('h2', null, label));
-      head.appendChild(make('span', 'mod-group-count', String(items.length)));
-      group.appendChild(head);
-      if (items.length) {
-        var list = make('ul', 'mod-list');
-        items.forEach(function (f) { list.appendChild(renderItem(f, reviewEnabled)); });
-        group.appendChild(list);
-      } else {
-        group.appendChild(make('p', 'mod-empty', 'No ideas need a decision.'));
-      }
-      sections.appendChild(group);
-    }
-
-    addGroup('Pending review', groups.pending, true);
-    addGroup('Planned', groups.planned);
-    addGroup('Open', groups.open);
-    addGroup('Declined', groups.declined);
-
-    var shipped = make('details', 'shipped-group');
-    shipped.open = shippedOpen;
-    shipped.addEventListener('toggle', function () { shippedOpen = shipped.open; });
-    var summary = make('summary');
-    summary.appendChild(make('strong', 'shipped-count', String(groups.shipped.length)));
-    var summaryCopy = make('span', 'shipped-summary-copy');
-    summaryCopy.appendChild(make('strong', null, 'Shipped'));
-    summaryCopy.appendChild(make('span', 'show-copy', 'Show shipped ideas'));
-    summaryCopy.appendChild(make('span', 'hide-copy', 'Hide shipped ideas'));
-    summary.appendChild(summaryCopy);
-    shipped.appendChild(summary);
-    var shippedList = make('ul', 'mod-list');
-    groups.shipped.forEach(function (f) { shippedList.appendChild(renderItem(f, reviewEnabled)); });
-    shipped.appendChild(shippedList);
-    sections.appendChild(shipped);
+    reviewEnabled = enabled;
+    boardView.setItems(features);
     status.textContent = features.length === 0 ? 'Nothing on the board yet.' : '';
   }
 

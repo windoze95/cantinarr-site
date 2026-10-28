@@ -26,7 +26,9 @@
 <link rel="preload" href="/static/fonts/schibsted-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/reel-v4.css">
 <link rel="stylesheet" href="/static/roadmap-v4.css">
+<link rel="stylesheet" href="/static/board-workspace-v1.css">
 <script src="/static/nav-menu-v1.js" defer></script>
+<script src="/static/board-view-v1.js"></script>
 </head>
 <body class="roadmap-page">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -118,28 +120,27 @@
   <header class="board-hero">
     <div class="page-width board-intro">
       <div>
-        <p class="board-eyebrow">Roadmap</p>
-        <h1>What’s next?</h1>
+        <h1>Roadmap</h1>
       </div>
       <div class="board-lede">
-        <p>Request a feature, add a comment, or vote on ideas. No account, no sign-in.</p>
-        <a class="board-jump" href="#suggest">Suggest a feature <span aria-hidden="true">↗</span></a>
+        <p>Find an idea, see its progress, and help shape what’s next.</p>
+        <a class="board-jump" href="#suggest">Suggest a feature</a>
       </div>
     </div>
   </header>
   <div class="page-width board-cols">
+
     <section aria-label="Feature requests">
-      <h2 class="board-heading">Open for votes</h2>
+      <div id="board-controls"></div>
       <div id="board-status" role="status">Loading the board…</div>
-      <ol id="board-list" class="board-list"></ol>
-      <h2 class="shipped-title" id="shipped-title" hidden><span class="shipped-count" id="shipped-count">0</span>Shipped</h2>
-      <ol id="shipped-list" class="board-list" aria-labelledby="shipped-title"></ol>
+      <div id="board-list"></div>
       <p class="board-note">Choose one vote per idea. Tap the other direction to switch, or tap your selected vote to remove it. An anonymous cookie remembers your votes. No account, no tracking.</p>
       <noscript><p class="board-note">The board needs JavaScript to load requests and count votes.</p></noscript>
     </section>
 
-    <section class="suggest-card" id="suggest" aria-label="Suggest a feature">
-      <h2>Suggest a feature</h2>
+
+    <details class="suggest-card" id="suggest">
+      <summary>Suggest a feature <span>No account needed</span></summary>
       <p class="sub">We send your title and details to OpenAI for review before your idea appears on the board.</p>
       <form id="suggest-form">
         <label for="f-title">What should Cantinarr do?</label>
@@ -160,7 +161,7 @@
         <p id="form-status" role="status"></p>
         <p class="fine">Prefer GitHub? Bugs and technical issues belong on the <a href="https://github.com/windoze95/cantinarr/issues" target="_blank" rel="noopener">issue tracker</a>.</p>
       </form>
-    </section>
+    </details>
   </div>
 </main>
     <footer class="site-footer page-width">
@@ -191,9 +192,6 @@
 
   var boardStatus = document.getElementById('board-status');
   var boardList = document.getElementById('board-list');
-  var shippedTitle = document.getElementById('shipped-title');
-  var shippedCount = document.getElementById('shipped-count');
-  var shippedList = document.getElementById('shipped-list');
   var form = document.getElementById('suggest-form');
   var formStatus = document.getElementById('form-status');
   var turnstileWidgetId = null;
@@ -205,6 +203,23 @@
   var commentDrafts = {};
   var commentViews = [];
   var refreshOnVoteCompletion = false;
+  var expandedItems = {};
+  var expandedResponses = {};
+  var boardView = window.RoadmapBoard.create({
+    root: boardList,
+    controls: document.getElementById('board-controls'),
+    statuses: [{ value: 'open', label: 'Open' }, { value: 'planned', label: 'Planned' }, { value: 'shipped', label: 'Shipped' }],
+    renderItem: renderItem,
+    onChange: refreshCommentChallenges
+  });
+  if (window.location && window.location.hash === '#suggest') document.getElementById('suggest').open = true;
+  document.querySelector('.board-jump').addEventListener('click', function (event) {
+    event.preventDefault();
+    var suggestion = document.getElementById('suggest');
+    suggestion.open = true;
+    document.getElementById('f-title').focus();
+    suggestion.scrollIntoView({ block: 'start' });
+  });
 
   function make(tag, className, text) {
     var node = document.createElement(tag);
@@ -215,6 +230,8 @@
 
   function renderItem(feature) {
     var item = make('li', 'board-item');
+    item.id = 'feature-' + feature.id;
+    item.tabIndex = -1;
     var votable = feature.status === 'open' || feature.status === 'planned';
 
     var controls = make('div', 'vote-controls');
@@ -298,7 +315,9 @@
 
     var body = make('div', 'item-body');
     var head = make('div', 'item-head');
-    var title = make('h3', null, feature.title);
+    var title = make('h3', 'item-title', feature.title);
+    var metadata = make('div', 'board-metadata');
+    metadata.appendChild(make('span', 'request-id', '#' + feature.id));
     var issue = typeof feature.githubIssueUrl === 'string' && feature.githubIssueUrl.match(
       /^https:\/\/github\.com\/([a-z0-9][a-z0-9-]*)\/([a-z0-9_.-]+)\/issues\/([1-9]\d*)$/i);
     if (issue) {
@@ -314,18 +333,56 @@
       issueIcon.alt = '';
       issueIcon.width = issueIcon.height = 18;
       issueLink.appendChild(issueIcon);
-      title.appendChild(issueLink);
+      issueLink.appendChild(make('span', null, 'Issue #' + issue[3]));
+      metadata.appendChild(issueLink);
+    } else {
+      metadata.appendChild(make('span', 'metadata-missing', 'No issue'));
     }
+    if (!feature.maintainerResponse) metadata.appendChild(make('span', 'metadata-missing', 'No response'));
     head.appendChild(title);
+    if (feature.status === 'open') head.appendChild(make('span', 'status-chip chip-open', 'Open'));
     if (feature.status === 'planned') head.appendChild(make('span', 'status-chip chip-planned', 'Planned'));
     if (feature.status === 'shipped') head.appendChild(make('span', 'status-chip chip-shipped', 'Shipped'));
     body.appendChild(head);
     if (feature.detail) body.appendChild(make('p', 'detail', feature.detail));
+    var expand = make('button', 'item-expand');
+    expand.type = 'button';
+    expand.setAttribute('aria-label', 'Expand details for “' + feature.title + '”');
+    function updateExpansion() {
+      var open = !!expandedItems[feature.id];
+      item.className = 'board-item' + (open ? ' item-expanded' : '');
+      expand.textContent = open ? 'Less detail' : 'More detail';
+      expand.setAttribute('aria-label', (open ? 'Collapse' : 'Expand') + ' details for “' + feature.title + '”');
+      expand.setAttribute('aria-expanded', String(open));
+    }
+    expand.addEventListener('click', function () {
+      expandedItems[feature.id] = !expandedItems[feature.id];
+      updateExpansion();
+    });
+    updateExpansion();
+    body.appendChild(expand);
+    body.appendChild(metadata);
     if (feature.maintainerResponse) {
       var response = make('section', 'maintainer-response');
       response.setAttribute('aria-label', 'Maintainer response');
       response.appendChild(make('strong', 'response-label', 'Maintainer response'));
-      response.appendChild(make('p', null, feature.maintainerResponse));
+      response.appendChild(make('p', 'response-preview', feature.maintainerResponse));
+      {
+        var responseExpand = make('button', 'item-expand');
+        responseExpand.type = 'button';
+        function updateResponseExpansion() {
+          var open = !!expandedResponses[feature.id];
+          response.className = 'maintainer-response' + (open ? ' response-expanded' : '');
+          responseExpand.textContent = open ? 'Less response' : 'Read response';
+          responseExpand.setAttribute('aria-expanded', String(open));
+        }
+        responseExpand.addEventListener('click', function () {
+          expandedResponses[feature.id] = !expandedResponses[feature.id];
+          updateResponseExpansion();
+        });
+        updateResponseExpansion();
+        response.appendChild(responseExpand);
+      }
       body.appendChild(response);
     }
     body.appendChild(renderComments(feature));
@@ -340,7 +397,19 @@
     });
   }
 
+  function refreshCommentChallenges() {
+    commentViews.forEach(function (view) {
+      if (view.widgetId !== null && turnstileApiReady) window.turnstile.remove(view.widgetId);
+      view.widgetId = null;
+      mountCommentChallenge(view);
+    });
+  }
+
   function mountCommentChallenge(view) {
+    if (view.disclosure.isConnected === false) return;
+    for (var parent = view.disclosure; parent; parent = parent.parentElement) {
+      if (parent.hidden) return;
+    }
     if (!boardSiteKey || !turnstileApiReady || view.widgetId !== null || !view.disclosure.open) return;
     view.widgetId = window.turnstile.render(view.slot, {
       sitekey: boardSiteKey,
@@ -538,15 +607,8 @@
       if (view.widgetId !== null && turnstileApiReady) window.turnstile.remove(view.widgetId);
     });
     commentViews = [];
-    boardList.textContent = '';
-    shippedList.textContent = '';
-    var active = data.features.filter(function (f) { return f.status !== 'shipped'; });
-    var shipped = data.features.filter(function (f) { return f.status === 'shipped'; });
-    active.forEach(function (f) { boardList.appendChild(renderItem(f)); });
-    shipped.forEach(function (f) { shippedList.appendChild(renderItem(f)); });
-    shippedCount.textContent = String(shipped.length);
-    shippedTitle.hidden = shipped.length === 0;
-    setBoardStatus(active.length === 0 ? 'No open requests yet. Yours could be the first.' : '');
+    boardView.setItems(data.features);
+    setBoardStatus('');
     if (data.siteKey) setupTurnstile(data.siteKey);
     commentViews.forEach(mountCommentChallenge);
   }

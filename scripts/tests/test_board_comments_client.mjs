@@ -3,13 +3,20 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
+const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
 const source = readFileSync(new URL('../../public/roadmap/index.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 class Element {
-  constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.value = ''; this.open = false; }
-  set textContent(value) { this.text = value; this.children = []; }
+  constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.dataset = {}; this.value = ''; this.open = false; }
+  set textContent(value) { this.text = value; this.children.forEach((child) => { child.parentNode = null; }); this.children = []; }
   get textContent() { return (this.text || '') + this.children.map((child) => child.textContent).join(''); }
-  appendChild(child) { this.children.push(child); return child; }
+  appendChild(child) { return this.insertBefore(child, null); }
+  insertBefore(child, before) {
+    if (child.parentNode) child.parentNode.children.splice(child.parentNode.children.indexOf(child), 1);
+    const index = before ? this.children.indexOf(before) : this.children.length;
+    this.children.splice(index, 0, child); child.parentNode = this; return child;
+  }
+  focus() {}
   setAttribute(key, value) { this.attrs[key] = value; }
   addEventListener(event, handler) { this.events[event] = handler; }
 }
@@ -23,7 +30,7 @@ const child = (root, className) => find(root, (el) => hasClass(el, className));
 const feature = (id = 1, status = 'open') => ({ id, title: 'One request', detail: 'Plain text', status,
   upvotes: 1, downvotes: 0, vote: null, commentCount: 1, maintainerResponse: '<script>never execute</script>' });
 async function page({ siteKey = null, features = [feature()] } = {}) {
-  const elements = Object.fromEntries(['board-status', 'board-list', 'shipped-title', 'shipped-count', 'shipped-list', 'suggest-form', 'form-status']
+  const elements = Object.fromEntries(['board-status', 'board-list', 'board-controls', 'suggest-form', 'form-status']
     .map((id) => [id, new Element('div')]));
   const calls = []; const events = {}; const widgets = []; const resets = []; const removed = [];
   const server = { siteKey, features };
@@ -35,8 +42,8 @@ async function page({ siteKey = null, features = [feature()] } = {}) {
     render: (slot, options) => { const id = widgets.length; widgets.push({ slot, options }); return id; },
     getResponse: (id) => 'challenge-' + id, reset: (id) => resets.push(id), remove: (id) => removed.push(id)
   } };
-  vm.runInNewContext(source, {
-    document: { getElementById: (id) => elements[id], createElement: (tag) => new Element(tag), head: new Element('head') },
+  vm.runInNewContext(viewSource + '\n' + source, {
+    document: { querySelector: () => new Element('a'), getElementById: (id) => elements[id], createElement: (tag) => new Element(tag), head: new Element('head') },
     window,
     fetch: (url, options) => {
       calls.push({ url, options });
@@ -47,9 +54,7 @@ async function page({ siteKey = null, features = [feature()] } = {}) {
   });
   await tick();
   function item(id = 1) {
-    const index = features.findIndex((f) => f.id === id);
-    return elements[features[index].status === 'shipped' ? 'shipped-list' : 'board-list'].children[
-      features.slice(0, index).filter((f) => (f.status === 'shipped') === (features[index].status === 'shipped')).length];
+    return find(elements['board-list'], (el) => el.id === 'feature-' + id);
   }
   function controls(id = 1) {
     const root = item(id); const discussion = child(root, 'item-comments'); const form = child(root, 'comment-form');
@@ -171,4 +176,26 @@ test('shipped requests allow comments while votes stay read-only; history refres
   assert.equal(p.calls.filter((call) => call.url === '/api/board').length, reads);
   finish(); await tick();
   assert.equal(p.calls.filter((call) => call.url === '/api/board').length, reads + 1);
+});
+
+test('search and display changes preserve an open discussion and in-flight comment', async () => {
+  const p = await page(); const c = await p.open(); write(c, 'Keep my draft');
+  let finish;
+  p.setSend(() => new Promise((resolve) => { finish = () => resolve(new Response('{"ok":true,"queued":true}')); }));
+  submit(c);
+  const search = find(p.elements['board-controls'], (el) => el.id === 'board-search');
+  search.value = 'no match'; search.events.input();
+  assert.equal(c.root.hidden, true);
+  search.value = ''; search.events.input();
+  const listButton = find(p.elements['board-controls'], (el) => el.dataset.view === 'list');
+  listButton.events.click();
+  assert.equal(p.controls().root, c.root);
+  assert.equal(c.input.value, 'Keep my draft');
+  assert.equal(c.discussion.open, true);
+  assert.equal(c.submit.disabled, true);
+  submit(c);
+  assert.equal(p.calls.filter((call) => call.options?.method === 'POST').length, 1);
+  finish(); await tick();
+  assert.equal(c.input.value, '');
+  assert.equal(c.submit.disabled, false);
 });
