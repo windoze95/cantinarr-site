@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const source = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../public/static/board-view-v2.js', import.meta.url), 'utf8');
 class Element {
   constructor(tag, document) {
     this.tag = tag; this.document = document; this.children = []; this.attrs = {}; this.events = {};
@@ -37,12 +37,13 @@ function page({ admin = false, mobile = false, defaultView } = {}) {
   const document = { activeElement: null };
   document.createElement = (tag) => new Element(tag, document);
   const root = document.createElement('div'); const controls = document.createElement('div');
-  const window = { matchMedia: () => ({ matches: mobile }) };
+  const events = {};
+  const window = { matchMedia: () => ({ matches: mobile }), addEventListener: (event, handler) => { events[event] = handler; } };
   vm.runInNewContext(source, { window, document });
   const rendered = []; let changes = 0;
   const statuses = (admin ? ['pending', 'open', 'planned', 'shipped', 'declined'] : ['open', 'planned', 'shipped'])
     .map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }));
-  const controller = window.RoadmapBoard.create({ root, controls, statuses, admin, defaultView,
+  const controller = window.RoadmapBoard.create({ root, controls, statuses, admin,
     onChange: () => { changes++; },
     renderItem(item) {
       rendered.push(item.id);
@@ -60,7 +61,8 @@ function page({ admin = false, mobile = false, defaultView } = {}) {
   const card = (id) => walk(root).find((node) => node.dataset.feature === id);
   const visibleCards = () => walk(root).filter((node) => node.dataset.feature !== undefined && isVisible(node));
   const set = (id, value) => { const node = byId(id); node.value = value; node.events[id === 'board-search' ? 'input' : 'change'](); };
-  return { root, controls, controller, document, rendered, byId, byClass, button, card, set,
+  if (defaultView) button('view', defaultView).events.click();
+  return { root, controls, controller, document, events, rendered, byId, byClass, button, card, set,
     visibleCards, ids: () => visibleCards().map((node) => node.dataset.feature), changes: () => changes };
 }
 
@@ -84,9 +86,12 @@ test('desktop lanes bound initial results, show totals, and focus the first reve
   assert.equal(p.rendered.length, 45, 'paging must not recreate cards');
 });
 
-test('mobile uses a bounded list, paging appends, and changing filters resets its limit', () => {
+test('mobile defaults to board and an explicit list selection supports bounded paging', () => {
   const p = page({ mobile: true });
   p.controller.setItems(Array.from({ length: 45 }, (_, index) => feature(index + 1)));
+  assert.equal(p.root.dataset.view, 'board');
+  assert.equal(p.visibleCards().length, 6);
+  p.button('view', 'list').events.click();
   assert.equal(p.root.dataset.view, 'list');
   assert.equal(p.visibleCards().length, 20);
   const more = p.byClass('board-list-view')[0].children.find((node) => node.className === 'board-more');
@@ -246,4 +251,53 @@ test('empty boards distinguish no data from no filter matches and still expose s
   assert.equal(p.controls.hidden, false);
   assert.match(p.byClass('board-empty').find(isVisible).textContent, /No ideas on the board yet/);
   assert.match(p.byClass('board-results')[0].textContent, /0 of 0 matching ideas. 0 total/);
+});
+
+test('every visit restores the unfiltered board without replacing drafts or active controls', () => {
+  for (const admin of [false, true]) for (const mobile of [false, true]) for (const persisted of [false, true]) {
+    const p = page({ admin, mobile });
+    const items = Array.from({ length: 21 }, (_, index) => feature(index + 1, {
+      status: ['open', 'planned', 'shipped'][index % 3],
+      githubIssueUrl: index === 0 ? 'https://github.com/windoze95/cantinarr/issues/741' : '',
+      maintainerResponse: index === 0 ? 'Planned response' : '',
+      commentCount: index === 0 ? 2 : 0,
+      pendingCommentCount: index === 0 ? 1 : 0,
+      contactEmail: index === 0 ? 'visitor@example.test' : '',
+    }));
+    p.controller.setItems(items);
+    assert.equal(p.root.dataset.view, 'board');
+    const card = p.card(1); const draft = card.children[1]; const discussion = card.children[2];
+    draft.value = 'Keep this unsaved draft'; draft.disabled = true; discussion.open = true;
+    p.byClass('board-lane')[admin ? 1 : 0].children.find((node) => node.className === 'board-more').events.click();
+    p.button('view', 'list').events.click();
+    p.button('status', 'open').events.click();
+    p.set('board-search', 'Idea 1');
+    p.set('board-issue-filter', 'linked');
+    p.set('board-response-filter', 'present');
+    p.set('board-comment-filter', admin ? 'pending' : 'present');
+    if (admin) p.set('board-contact-filter', 'present');
+    p.set('board-sort', 'newest');
+    p.byClass('board-filters')[0].open = true;
+    p.byClass('board-lanes')[0].scrollLeft = 250;
+    assert.deepEqual(p.ids(), [1]);
+
+    p.events.pageshow({ persisted });
+
+    assert.equal(p.root.dataset.view, 'board');
+    assert.equal(p.button('status', 'all').attrs['aria-pressed'], 'true');
+    assert.equal(p.byId('board-search').value, '');
+    for (const id of ['board-issue-filter', 'board-response-filter', 'board-comment-filter', ...(admin ? ['board-contact-filter'] : [])]) {
+      assert.equal(p.byId(id).value, 'all');
+    }
+    assert.equal(p.byId('board-sort').value, 'votes');
+    assert.equal(p.byClass('board-filters')[0].open, false);
+    assert.equal(p.byClass('board-lanes')[0].scrollLeft, 0);
+    assert.equal(p.visibleCards().length, 18, 'initial page limits restored in every lane');
+    assert.match(p.byClass('board-results')[0].textContent, /18 of 21 matching ideas/);
+    assert.equal(p.card(1), card);
+    assert.equal(draft.value, 'Keep this unsaved draft');
+    assert.equal(draft.disabled, true, 'visit reset must not unlock an active write');
+    assert.equal(discussion.open, true);
+    assert.equal(p.rendered.length, 21);
+  }
 });

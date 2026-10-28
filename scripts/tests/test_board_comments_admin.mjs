@@ -5,7 +5,7 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../../public/roadmap/admin.html', import.meta.url), 'utf8')
   .match(/<script>\s*([\s\S]*?)<\/script>/)[1];
-const viewSource = readFileSync(new URL('../../public/static/board-view-v1.js', import.meta.url), 'utf8');
+const viewSource = readFileSync(new URL('../../public/static/board-view-v2.js', import.meta.url), 'utf8');
 class Element {
   constructor(tag) {
     this.tag = tag; this.children = []; this.attrs = {}; this.events = {}; this.dataset = {};
@@ -60,7 +60,7 @@ async function page() {
   let read = async (url) => url === '/api/board/admin' ? response(server) : response({ comments, nextCursor: null });
   const context = {
     document: { getElementById: (id) => elements[id] || Object.values(elements).map((node) => byId(node, id)).find(Boolean), createElement: (tag) => new Element(tag), createTextNode: (text) => Object.assign(new Element('text'), { text }) },
-    window: {},
+    window: { addEventListener() {} },
     sessionStorage: { getItem: () => 'local-test-token', setItem() {}, removeItem() {} },
     setTimeout: () => 1,
     fetch: (url, options) => {
