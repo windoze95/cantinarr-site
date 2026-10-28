@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png?v=4">
 <link rel="preload" href="/static/fonts/schibsted-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/reel-v4.css">
-<link rel="stylesheet" href="/static/roadmap-v1.css">
+<link rel="stylesheet" href="/static/roadmap-v2.css">
 <script src="/static/nav-menu-v1.js" defer></script>
 </head>
 <body class="roadmap-page">
@@ -122,7 +122,7 @@
         <h1>What’s next?</h1>
       </div>
       <div class="board-lede">
-        <p>Request a feature, or vote up or down on ideas. No account, no sign-in.</p>
+        <p>Request a feature, add a comment, or vote on ideas. No account, no sign-in.</p>
         <a class="board-jump" href="#suggest">Suggest a feature <span aria-hidden="true">↗</span></a>
       </div>
     </div>
@@ -194,6 +194,11 @@
   var turnstileWidgetId = null;
   var turnstileReady = false;
   var activeVoteRequests = 0;
+  var activeCommentRequests = 0;
+  var boardSiteKey = null;
+  var turnstileApiReady = false;
+  var commentDrafts = {};
+  var commentViews = [];
   var refreshOnVoteCompletion = false;
 
   function make(tag, className, text) {
@@ -275,7 +280,7 @@
           buttons.up.disabled = buttons.down.disabled = !votable;
           controls.setAttribute('aria-busy', 'false');
           activeVoteRequests -= 1;
-          if (refreshOnVoteCompletion && activeVoteRequests === 0) {
+          if (refreshOnVoteCompletion && activeVoteRequests === 0 && activeCommentRequests === 0) {
             refreshOnVoteCompletion = false;
             loadBoard();
           }
@@ -293,8 +298,211 @@
     if (feature.status === 'shipped') head.appendChild(make('span', 'status-chip chip-shipped', 'Shipped'));
     body.appendChild(head);
     if (feature.detail) body.appendChild(make('p', 'detail', feature.detail));
+    if (feature.maintainerResponse) {
+      var response = make('section', 'maintainer-response');
+      response.setAttribute('aria-label', 'Maintainer response');
+      response.appendChild(make('strong', 'response-label', 'Maintainer response'));
+      response.appendChild(make('p', null, feature.maintainerResponse));
+      body.appendChild(response);
+    }
+    body.appendChild(renderComments(feature));
     item.appendChild(body);
     return item;
+  }
+
+  function commentDate(value) {
+    var date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
+  function mountCommentChallenge(view) {
+    if (!boardSiteKey || !turnstileApiReady || view.widgetId !== null || !view.disclosure.open) return;
+    view.widgetId = window.turnstile.render(view.slot, {
+      sitekey: boardSiteKey,
+      theme: 'dark',
+      size: 'compact',
+      'error-callback': function () {
+        view.status.textContent = 'The bot check couldn’t load. Reload the board and try again.';
+      }
+    });
+  }
+
+  function renderComments(feature) {
+    var draft = commentDrafts[feature.id] || { body: '', website: '', open: false };
+    commentDrafts[feature.id] = draft;
+    var disclosure = make('details', 'item-comments');
+    disclosure.open = draft.open;
+    var count = Number.isSafeInteger(feature.commentCount) ? feature.commentCount : 0;
+    var summary = make('summary', 'comments-summary', count + (count === 1 ? ' comment' : ' comments'));
+    summary.setAttribute('aria-label', 'Comments on “' + feature.title + '”');
+    disclosure.appendChild(summary);
+    var listStatus = make('p', 'comment-status');
+    listStatus.setAttribute('role', 'status');
+    disclosure.appendChild(listStatus);
+    var list = make('ol', 'comment-list');
+    list.setAttribute('aria-label', 'Comments on “' + feature.title + '”');
+    disclosure.appendChild(list);
+    var more = make('button', 'comment-more', 'Load more comments');
+    more.type = 'button';
+    more.hidden = true;
+    disclosure.appendChild(more);
+    var commentForm = make('form', 'comment-form');
+    var label = make('label', null, 'Add a comment');
+    label.setAttribute('for', 'comment-body-' + feature.id);
+    commentForm.appendChild(label);
+    var input = make('textarea');
+    input.id = 'comment-body-' + feature.id;
+    input.name = 'body';
+    input.rows = 3;
+    input.maxLength = 2000;
+    input.required = true;
+    input.value = draft.body;
+    input.setAttribute('aria-describedby', 'comment-note-' + feature.id);
+    input.addEventListener('input', function () { draft.body = input.value; });
+    commentForm.appendChild(input);
+    var note = make('p', 'comment-note', 'No account needed. Comments appear after maintainer approval. Please keep them about this request.');
+    note.id = 'comment-note-' + feature.id;
+    commentForm.appendChild(note);
+    var trap = make('div', 'hp');
+    trap.setAttribute('aria-hidden', 'true');
+    var trapLabel = make('label', null, 'Website');
+    trapLabel.setAttribute('for', 'comment-website-' + feature.id);
+    trap.appendChild(trapLabel);
+    var website = make('input');
+    website.id = 'comment-website-' + feature.id;
+    website.type = 'text';
+    website.name = 'website';
+    website.tabIndex = -1;
+    website.autocomplete = 'off';
+    website.value = draft.website;
+    website.addEventListener('input', function () { draft.website = website.value; });
+    trap.appendChild(website);
+    commentForm.appendChild(trap);
+    var slot = make('div', 'comment-turnstile');
+    commentForm.appendChild(slot);
+    var submit = make('button', 'comment-submit', 'Submit comment');
+    submit.type = 'submit';
+    commentForm.appendChild(submit);
+    var status = make('p', 'comment-status');
+    status.setAttribute('role', 'status');
+    commentForm.appendChild(status);
+    disclosure.appendChild(commentForm);
+    var view = { disclosure: disclosure, slot: slot, widgetId: null, status: status };
+    commentViews.push(view);
+    var loaded = false;
+    var loading = false;
+    var nextCursor = null;
+    var busy = false;
+
+    function loadComments() {
+      if (loading) return;
+      loading = true;
+      more.disabled = true;
+      listStatus.textContent = 'Loading comments…';
+      list.setAttribute('aria-busy', 'true');
+      var url = '/api/board/comments?id=' + feature.id + (nextCursor === null ? '' : '&after=' + nextCursor);
+      fetch(url, { cache: 'no-store' }).then(function (res) {
+        if (!res.ok) throw new Error('comments_unavailable');
+        return res.json();
+      }).then(function (data) {
+        if (!Array.isArray(data.comments) ||
+            !(data.nextCursor === null || (Number.isSafeInteger(data.nextCursor) && data.nextCursor > 0))) {
+          throw new Error('invalid_comments');
+        }
+        data.comments.forEach(function (comment) {
+          var entry = make('li', 'comment');
+          var meta = make('p', 'comment-meta');
+          meta.appendChild(make('strong', comment.author === 'maintainer' ? 'comment-maintainer' : null,
+            comment.author === 'maintainer' ? 'Maintainer' : 'Visitor'));
+          var date = make('time', null, commentDate(comment.createdAt));
+          date.setAttribute('datetime', comment.createdAt);
+          meta.appendChild(date);
+          entry.appendChild(meta);
+          entry.appendChild(make('p', 'comment-body', comment.body));
+          list.appendChild(entry);
+        });
+        nextCursor = data.nextCursor;
+        loaded = true;
+        more.textContent = 'Load more comments';
+        more.hidden = nextCursor === null;
+        listStatus.textContent = list.children.length ? '' : 'No comments yet. Add the first one.';
+      }).catch(function () {
+        listStatus.textContent = 'Couldn’t load comments. Try again in a moment.';
+        more.textContent = 'Retry loading comments';
+        more.hidden = false;
+      }).finally(function () {
+        loading = false;
+        more.disabled = false;
+        list.setAttribute('aria-busy', 'false');
+      });
+    }
+
+    more.addEventListener('click', loadComments);
+    disclosure.addEventListener('toggle', function () {
+      draft.open = disclosure.open;
+      if (!disclosure.open) return;
+      mountCommentChallenge(view);
+      if (!loaded) loadComments();
+    });
+    commentForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (busy) return;
+      if (!input.value.trim() || input.value.length > 2000) {
+        status.textContent = 'Write a comment of up to 2,000 characters.';
+        return;
+      }
+      var payload = { id: feature.id, body: input.value, website: website.value };
+      if (boardSiteKey) {
+        if (view.widgetId === null || !turnstileApiReady) {
+          status.textContent = 'Give the bot check a second to finish, then submit again.';
+          return;
+        }
+        payload.turnstile = window.turnstile.getResponse(view.widgetId);
+        if (!payload.turnstile) {
+          status.textContent = 'Complete the bot check before submitting.';
+          return;
+        }
+      }
+      busy = true;
+      activeCommentRequests += 1;
+      submit.disabled = true;
+      input.disabled = true;
+      commentForm.setAttribute('aria-busy', 'true');
+      status.className = 'comment-status';
+      status.textContent = 'Sending…';
+      postJson('/api/board/comments', payload).then(function (result) {
+        if (result.ok !== true || result.queued !== true) throw new Error('invalid_comment_reply');
+        input.value = draft.body = '';
+        website.value = draft.website = '';
+        status.textContent = 'Got it. Your comment is waiting for maintainer approval.';
+        status.className = 'comment-status ok';
+      }).catch(function (err) {
+        var messages = {
+          invalid_comment: 'Write a comment of up to 2,000 characters.',
+          rate_limited: 'That’s a lot of comments for one day. Try again tomorrow.',
+          turnstile_failed: 'The bot check didn’t pass. Complete it again and retry.',
+          not_found: 'This request is no longer available. Reload the board.',
+          board_unconfigured: 'The board is still being set up. Check back soon.'
+        };
+        status.textContent = messages[err.code] || 'Couldn’t confirm your comment was received. Your text is still here. Check back before sending it again.';
+        status.className = 'comment-status err';
+      }).finally(function () {
+        if (view.widgetId !== null && turnstileApiReady) window.turnstile.reset(view.widgetId);
+        busy = false;
+        activeCommentRequests -= 1;
+        submit.disabled = false;
+        input.disabled = false;
+        commentForm.setAttribute('aria-busy', 'false');
+        if (refreshOnVoteCompletion && activeVoteRequests === 0 && activeCommentRequests === 0) {
+          refreshOnVoteCompletion = false;
+          loadBoard();
+        }
+      });
+    });
+    if (disclosure.open) loadComments();
+    return disclosure;
   }
 
   function setBoardStatus(message) {
@@ -302,6 +510,11 @@
   }
 
   function render(data) {
+    boardSiteKey = data.siteKey || null;
+    commentViews.forEach(function (view) {
+      if (view.widgetId !== null && turnstileApiReady) window.turnstile.remove(view.widgetId);
+    });
+    commentViews = [];
     boardList.textContent = '';
     shippedList.textContent = '';
     var active = data.features.filter(function (f) { return f.status !== 'shipped'; });
@@ -312,6 +525,7 @@
     shippedTitle.hidden = shipped.length === 0;
     setBoardStatus(active.length === 0 ? 'No open requests yet. Yours could be the first.' : '');
     if (data.siteKey) setupTurnstile(data.siteKey);
+    commentViews.forEach(mountCommentChallenge);
   }
 
   function postJson(url, payload) {
@@ -335,10 +549,12 @@
     if (turnstileReady) return;
     turnstileReady = true;
     window.cantinarrTurnstileLoaded = function () {
+      turnstileApiReady = true;
       turnstileWidgetId = window.turnstile.render('#turnstile-slot', {
         sitekey: siteKey,
         theme: 'dark'
       });
+      commentViews.forEach(mountCommentChallenge);
     };
     var script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=cantinarrTurnstileLoaded&render=explicit';
@@ -400,7 +616,7 @@
     if (!event.persisted) return;
     // Restoring a cached page must not replace locked controls with a stale
     // pre-write snapshot while its outstanding vote is still committing.
-    if (activeVoteRequests) refreshOnVoteCompletion = true;
+    if (activeVoteRequests || activeCommentRequests) refreshOnVoteCompletion = true;
     else loadBoard();
   });
   loadBoard();

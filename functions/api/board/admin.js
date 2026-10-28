@@ -2,7 +2,7 @@
 // GET lists every feature (including pending and declined); POST applies a
 // moderation action. Used by /roadmap/admin.html.
 
-import { ensureSchema, isAdmin, json, readJsonBody } from './_util.js';
+import { LIMITS, cleanText, ensureSchema, isAdmin, json, readJsonBody } from './_util.js';
 import { reviewPending } from './_review.js';
 
 const ACTIONS = {
@@ -34,11 +34,15 @@ export async function onRequestGet(context) {
   const { results } = await db
     .prepare(
       `SELECT f.id, f.title, f.detail, f.status, f.created_at,
+        (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'approved') AS comment_count,
+        (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'pending') AS pending_comment_count,
+        response.body AS maintainer_response, response.updated_at AS response_updated_at,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'up') AS upvotes,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'down') AS downvotes,
         r.state AS review_state, r.recommendation, r.reason, r.reviewed_at
       FROM features f
       LEFT JOIN feature_reviews r ON r.feature_id = f.id
+      LEFT JOIN feature_responses response ON response.feature_id = f.id
       ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, upvotes DESC, f.created_at DESC`
     )
     .all();
@@ -54,6 +58,10 @@ export async function onRequestGet(context) {
       downvotes: row.downvotes,
       votes: row.upvotes,
       createdAt: row.created_at,
+      commentCount: row.comment_count,
+      pendingCommentCount: row.pending_comment_count,
+      maintainerResponse: row.maintainer_response || '',
+      responseUpdatedAt: row.response_updated_at || null,
       review: row.review_state === 'completed' ? {
         model: 'gpt-6-luna',
         recommendation: row.recommendation,
@@ -73,9 +81,10 @@ export async function onRequestPost({ request, env }) {
   await ensureSchema(db);
 
   const body = await readJsonBody(request);
-  const id = body && Number.isInteger(body.id) ? body.id : null;
+  const id = body && Number.isSafeInteger(body.id) ? body.id : null;
   const action = body ? body.action : null;
-  if (!id || id < 1 || (!ACTIONS[action] && action !== 'delete')) {
+  if (!id || id < 1 || (!Object.hasOwn(ACTIONS, action) &&
+      !['delete', 'comment', 'respond', 'approve_comment', 'delete_comment'].includes(action))) {
     return json({ error: 'bad_request' }, { status: 400 });
   }
 
@@ -86,9 +95,43 @@ export async function onRequestPost({ request, env }) {
     await db.batch([
       db.prepare(`DELETE FROM votes WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM feature_reviews WHERE feature_id = ?1`).bind(id),
+      db.prepare(`DELETE FROM feature_comments WHERE feature_id = ?1`).bind(id),
+      db.prepare(`DELETE FROM feature_responses WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM features WHERE id = ?1`).bind(id),
     ]);
     return json({ ok: true, deleted: true });
+  }
+
+  if (action === 'comment' || action === 'respond') {
+    const max = action === 'comment' ? LIMITS.commentMax : LIMITS.responseMax;
+    const text = cleanText(body.body, max + 1);
+    if (typeof body.body !== 'string' || text.length > max || (action === 'comment' && !text)) {
+      return json({ error: action === 'comment' ? 'invalid_comment' : 'invalid_response' }, { status: 400 });
+    }
+    if (action === 'comment') {
+      await db.prepare(`INSERT INTO feature_comments (feature_id, body, author, status)
+        SELECT id, ?2, 'maintainer', 'approved' FROM features WHERE id = ?1`).bind(id, text).run();
+    } else if (text) {
+      await db.prepare(`INSERT INTO feature_responses (feature_id, body)
+        SELECT id, ?2 FROM features WHERE id = ?1
+        ON CONFLICT (feature_id) DO UPDATE SET body = excluded.body,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(id, text).run();
+    } else {
+      await db.prepare(`DELETE FROM feature_responses WHERE feature_id = ?1`).bind(id).run();
+    }
+    return json({ ok: true });
+  }
+
+  if (action === 'approve_comment' || action === 'delete_comment') {
+    if (!Number.isSafeInteger(body.commentId) || body.commentId < 1) {
+      return json({ error: 'bad_request' }, { status: 400 });
+    }
+    const mutation = action === 'approve_comment'
+      ? `UPDATE feature_comments SET status = 'approved' WHERE id = ?1 AND feature_id = ?2`
+      : `DELETE FROM feature_comments WHERE id = ?1 AND feature_id = ?2`;
+    const result = await db.prepare(mutation).bind(body.commentId, id).run();
+    if (!result.meta.changes) return json({ error: 'not_found' }, { status: 404 });
+    return json({ ok: true });
   }
 
   await db.prepare(`UPDATE features SET status = ?2 WHERE id = ?1`).bind(id, ACTIONS[action]).run();

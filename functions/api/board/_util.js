@@ -35,6 +35,29 @@ const SCHEMA_STATEMENTS = [
     reviewed_at TEXT,
     FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
   )`,
+  `CREATE TABLE IF NOT EXISTS feature_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    feature_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    author TEXT NOT NULL CHECK (author IN ('visitor', 'maintainer')),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved')),
+    ip_hash TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS comments_feature_status ON feature_comments (feature_id, status, id)`,
+  `CREATE TABLE IF NOT EXISTS feature_responses (
+    feature_id INTEGER PRIMARY KEY,
+    body TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+  )`,
+  `CREATE TABLE IF NOT EXISTS comment_log (
+    id TEXT PRIMARY KEY,
+    ip_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS comment_ip_time ON comment_log (ip_hash, created_at)`,
 ];
 
 // Public statuses are visible on /roadmap/; votable ones accept directional votes.
@@ -47,6 +70,9 @@ export const LIMITS = {
   detailMax: 2000,
   submissionsPerIpPerDay: 5,
   voteInsertsPerIpPerHour: 40,
+  commentMax: 2000,
+  responseMax: 2000,
+  commentsPerIpPerDay: 10,
 };
 
 const schemaReady = new WeakMap();
