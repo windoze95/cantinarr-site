@@ -49,7 +49,7 @@ async function page() {
   let read = async (url) => url === '/api/board/admin' ? response(server) : response({ comments, nextCursor: null });
   vm.runInNewContext(source, {
     document: { getElementById: (id) => elements[id], createElement: (tag) => new Element(tag), createTextNode: (text) => Object.assign(new Element('text'), { text }) },
-    sessionStorage: { getItem: () => 'local-test-token', setItem() {} },
+    sessionStorage: { getItem: () => 'local-test-token', setItem() {}, removeItem() {} },
     setTimeout: () => 1,
     fetch: (url, options) => {
       calls.push({ url, options });
@@ -69,6 +69,75 @@ async function openComments(card) {
   details.open = true; details.events.toggle(); await tick();
   return details;
 }
+
+test('admin contact is optional and renders untrusted values as plain text', async () => {
+  const p = await page();
+  assert.equal(byClass(p.card(1), 'private-contact'), undefined);
+  Object.assign(p.server.features[0], { contactEmail: 'visitor@example.test', contactDiscord: '<img src=x onerror=alert(1)>' });
+  p.elements.load.events.click(); await tick();
+  const contact = byClass(p.card(1), 'private-contact');
+  assert.match(contact.textContent, /Admin only/);
+  assert.equal(byClass(contact, 'contact-email').textContent, 'Email: visitor@example.test');
+  assert.equal(byClass(contact, 'contact-discord').textContent, 'Discord: <img src=x onerror=alert(1)>');
+  assert.equal(byClass(contact, 'contact-discord').children.length, 0);
+  assert.ok(walk(contact).every((node) => node.tag !== 'a' && node.tag !== 'img'));
+  assert.equal(byClass(p.card(2), 'private-contact'), undefined);
+});
+
+test('missing and rejected admin credentials clear private cards and stale reads cannot restore them', async () => {
+  const p = await page();
+  Object.assign(p.server.features[0], { contactEmail: 'visitor@example.test' });
+  p.elements.load.events.click(); await tick();
+  assert.match(p.elements['mod-sections'].textContent, /visitor@example\.test/);
+  let finish;
+  p.setRead(() => new Promise((resolve) => { finish = () => resolve(response(p.server)); }));
+  p.elements.load.events.click();
+  p.elements.token.value = '';
+  p.elements.load.events.click();
+  assert.equal(p.elements['mod-sections'].textContent, '');
+  finish(); await tick();
+  assert.equal(p.elements['mod-sections'].textContent, '');
+  p.elements.token.value = 'local-test-token';
+  p.setRead(async () => response(p.server));
+  p.elements.load.events.click(); await tick();
+  assert.match(p.elements['mod-sections'].textContent, /visitor@example\.test/);
+  p.setRead(async () => response({ error: 'unauthorized' }, 401));
+  p.elements.load.events.click(); await tick();
+  assert.equal(p.elements['mod-sections'].textContent, '');
+  assert.match(p.elements['mod-status'].textContent, /token was rejected/);
+});
+
+test('transient admin load errors retain authenticated drafts and cards', async () => {
+  const p = await page();
+  const card = p.card(1);
+  byId(card, 'response-1').value = 'Keep this draft';
+  p.setRead(async () => { throw new Error('offline'); });
+  p.elements.load.events.click(); await tick();
+  assert.equal(p.card(1), card);
+  assert.equal(byId(card, 'response-1').value, 'Keep this draft');
+  assert.match(p.elements['mod-status'].textContent, /Could not load the board: offline/);
+});
+
+test('a stale authentication rejection cannot clear a newer authenticated board', async () => {
+  for (const oldToken of ['wrong-token', 'local-test-token']) {
+    const p = await page();
+    let rejectOld;
+    p.setRead(() => new Promise((resolve) => {
+      rejectOld = () => resolve(response({ error: 'unauthorized' }, 401));
+    }));
+    p.elements.token.value = oldToken;
+    p.elements.load.events.click();
+    p.elements.token.value = 'local-test-token';
+    Object.assign(p.server.features[0], { contactEmail: 'visitor@example.test' });
+    p.setRead(async () => response(p.server));
+    p.elements.load.events.click(); await tick();
+    const card = p.card(1);
+    assert.match(card.textContent, /visitor@example\.test/);
+    rejectOld(); await tick();
+    assert.equal(p.card(1), card, 'old rejection must not remove the newer view');
+    assert.equal(p.elements['mod-status'].textContent, '');
+  }
+});
 
 test('admin response stays separate from lazy comments and saving preserves another card draft', async () => {
   const p = await page(); const [card, other] = p.cards;

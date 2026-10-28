@@ -97,6 +97,31 @@ local comments smoke also exercises linking, replacement, validation, and
 removal. Association is manual; issue existence, visibility, and status are not
 queried or synchronized.
 
+## Private requester contact details
+
+The suggestion form accepts optional email (254 characters) and Discord username
+(100 characters) fields. Either, both, or neither may be supplied; existing
+clients that omit them still work. The form explains that only the admin can see
+them and that they are used for questions about the idea. Invalid email,
+non-string input, overlong values, and embedded control characters return a
+field-specific error without echoing the value. Failed submissions preserve the
+fields; a successful submission clears them with the rest of the form.
+
+`feature_contacts` is created additively and saved in the same transaction as
+the feature and rate-limit log. Only authenticated `/api/board/admin` reads
+return `contactEmail` and `contactDiscord`, with `Cache-Control: no-store`.
+Existing features return empty strings. The admin card shows supplied contacts
+as plain text; check literal HTML and long values at phone and desktop widths.
+Missing or incorrect tokens must not disclose them. Public board, comment,
+vote, and submit responses, AI review input (including retries), and ntfy
+notifications must contain neither the contact fields nor their values.
+Deletion removes the private record along with the feature.
+
+Run `node --test scripts/tests/test_board_contacts.mjs` for the privacy and
+validation regression checks. In disposable local D1, submit an idea with both
+fields, read it as admin, approve it, and confirm the public JSON and rendered
+card contain neither contact. Repeat with blank fields and check deletion.
+
 ## Schema and API compatibility
 
 `ensureSchema` in `functions/api/board/_util.js` creates or upgrades the schema

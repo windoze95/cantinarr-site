@@ -38,6 +38,7 @@ export async function onRequestGet(context) {
         (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'pending') AS pending_comment_count,
         response.body AS maintainer_response, response.updated_at AS response_updated_at,
         issue.issue_url AS github_issue_url,
+        contact.email AS contact_email, contact.discord AS contact_discord,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'up') AS upvotes,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'down') AS downvotes,
         r.state AS review_state, r.recommendation, r.reason, r.reviewed_at
@@ -45,6 +46,7 @@ export async function onRequestGet(context) {
       LEFT JOIN feature_reviews r ON r.feature_id = f.id
       LEFT JOIN feature_responses response ON response.feature_id = f.id
       LEFT JOIN feature_issue_links issue ON issue.feature_id = f.id
+      LEFT JOIN feature_contacts contact ON contact.feature_id = f.id
       ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, upvotes DESC, f.created_at DESC`
     )
     .all();
@@ -65,6 +67,8 @@ export async function onRequestGet(context) {
       maintainerResponse: row.maintainer_response || '',
       responseUpdatedAt: row.response_updated_at || null,
       githubIssueUrl: row.github_issue_url || '',
+      contactEmail: row.contact_email || '',
+      contactDiscord: row.contact_discord || '',
       review: row.review_state === 'completed' ? {
         model: 'gpt-6-luna',
         recommendation: row.recommendation,
@@ -101,6 +105,7 @@ export async function onRequestPost({ request, env }) {
       db.prepare(`DELETE FROM feature_comments WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM feature_responses WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM feature_issue_links WHERE feature_id = ?1`).bind(id),
+      db.prepare(`DELETE FROM feature_contacts WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM features WHERE id = ?1`).bind(id),
     ]);
     return json({ ok: true, deleted: true });

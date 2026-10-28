@@ -16,8 +16,13 @@ class Element {
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const feature = () => ({ id: 1, title: '<img onerror=alert(1)>', detail: 'Plain text', status: 'open', upvotes: 7, downvotes: 3, vote: null });
 async function page() {
-  const elements = Object.fromEntries(['board-status', 'board-list', 'shipped-title', 'shipped-count', 'shipped-list', 'suggest-form', 'form-status']
+  const fields = ['f-title', 'f-detail', 'f-contact-email', 'f-contact-discord', 'f-website'];
+  const elements = Object.fromEntries(['board-status', 'board-list', 'shipped-title', 'shipped-count', 'shipped-list', 'suggest-form', 'form-status', ...fields]
     .map((id) => [id, new Element('div')]));
+  const submitButton = new Element('button');
+  elements['suggest-form'].querySelector = () => submitButton;
+  elements['suggest-form'].reset = () => fields.forEach((id) => { elements[id].value = ''; });
+  elements['suggest-form'].reset();
   const events = {}; const calls = [];
   const server = { features: [feature()], siteKey: null };
   let send = async (_, options) => {
@@ -46,6 +51,37 @@ async function page() {
   return { elements, events, calls, server, controls, buttons, count,
     setSend: (handler) => { send = handler; }, setRead: (handler) => { read = handler; } };
 }
+
+test('suggestion submits optional contact separately and clears it only after success', async () => {
+  const p = await page();
+  p.elements['f-title'].value = 'Request follow-up';
+  p.elements['f-detail'].value = 'Public idea details';
+  p.elements['f-contact-email'].value = 'visitor@example.test';
+  p.elements['f-contact-discord'].value = 'visitor.name';
+  p.setSend(async (url, options) => {
+    assert.equal(url, '/api/board/submit');
+    assert.deepEqual(JSON.parse(options.body), {
+      title: 'Request follow-up', detail: 'Public idea details',
+      contactEmail: 'visitor@example.test', contactDiscord: 'visitor.name', website: '',
+    });
+    return new Response('{"error":"invalid_contact_email"}', { status: 400 });
+  });
+  p.elements['suggest-form'].events.submit({ preventDefault() {} }); await tick();
+  assert.equal(p.elements['f-contact-email'].value, 'visitor@example.test');
+  assert.equal(p.elements['f-contact-discord'].value, 'visitor.name');
+  assert.match(p.elements['form-status'].textContent, /valid email address, or leave it blank/);
+  p.setSend(async () => new Response('{"ok":true,"queued":true}'));
+  p.elements['suggest-form'].events.submit({ preventDefault() {} }); await tick();
+  assert.equal(p.elements['f-contact-email'].value, '');
+  assert.equal(p.elements['f-contact-discord'].value, '');
+  assert.doesNotMatch(p.elements['board-list'].textContent, /visitor@example\.test|visitor\.name/);
+  p.elements['f-title'].value = 'Anonymous idea';
+  p.elements['suggest-form'].events.submit({ preventDefault() {} }); await tick();
+  const payload = JSON.parse(p.calls.at(-1).options.body);
+  assert.equal(payload.contactEmail, '');
+  assert.equal(payload.contactDiscord, '');
+  assert.match(p.elements['form-status'].textContent, /review queue/);
+});
 
 test('client serializes repeated taps, sends desired states, switches and removes using server counts', async () => {
   const p = await page();
