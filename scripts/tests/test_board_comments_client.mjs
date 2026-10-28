@@ -65,6 +65,25 @@ async function page({ siteKey = null, features = [feature()] } = {}) {
 const write = (control, text) => { control.input.value = text; control.input.events.input(); };
 const submit = (control) => control.form.events.submit({ preventDefault() {} });
 
+test('only linked items show an accessible GitHub icon, including shipped items', async () => {
+  const url = 'https://github.com/windoze95/cantinarr/issues/677';
+  const p = await page({ features: [feature(1), { ...feature(2, 'shipped'), githubIssueUrl: url },
+    { ...feature(3), githubIssueUrl: 'javascript:alert(1)' },
+    { ...feature(4), githubIssueUrl: 'https://github.com.evil.test/a/b/issues/1' }] });
+  assert.equal(child(p.controls(1).root, 'issue-link'), undefined);
+  assert.equal(child(p.controls(3).root, 'issue-link'), undefined);
+  assert.equal(child(p.controls(4).root, 'issue-link'), undefined);
+  const link = child(p.controls(2).root, 'issue-link');
+  assert.equal(link.href, url);
+  assert.equal(link.target, '_blank');
+  assert.equal(link.rel, 'noopener noreferrer');
+  assert.match(link.attrs['aria-label'], /windoze95\/cantinarr#677.*new tab/);
+  assert.equal(link.title, link.attrs['aria-label']);
+  assert.equal(link.children[0].src, '/static/github-issue-v1.svg');
+  assert.equal(link.children[0].alt, '');
+  assert.equal(child(p.controls(2).discussion, 'issue-link'), undefined, 'icon stays outside comments');
+});
+
 test('pinned response stays outside collapsed discussion and public comments load only when opened', async () => {
   const p = await page(); const c = p.controls();
   assert.equal(p.calls.length, 1);

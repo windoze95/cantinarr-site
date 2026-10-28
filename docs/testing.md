@@ -74,6 +74,29 @@ POST reply: drafts must remain, with no automatic retry or duplicate post.
 Run a configured Turnstile check in an authorized preview to confirm real
 challenge success, expiry, and retry; bootstrap local tests have no CAPTCHA.
 
+## GitHub issue links
+
+Each admin card has an optional GitHub issue URL with Save issue, Remove issue,
+and Open issue controls. Check add, replace, clear, reload, and status changes
+while another card has unsaved issue/response/comment drafts. Saving a link must
+not rebuild unrelated cards. Invalid input must preserve the draft and saved
+link. The API accepts HTTPS issue URLs on `github.com` and removes pasted query
+strings, trailing slashes, and comment anchors. It rejects other hosts, embedded
+credentials, pull request URLs, and executable URL schemes.
+
+Public cards with an issue show a small GitHub icon beside the title, including
+shipped cards. Check its accessible name, tooltip, visible keyboard focus,
+phone touch target, and new-tab destination. Unlinked cards have no icon. Long
+titles must still wrap at 320px and 390px. The link remains available with the
+comments collapsed. Existing response and comment controls remain independent.
+
+`feature_issue_links` is created additively by `ensureSchema`; deleting a feature
+removes its association. Both board reads include `githubIssueUrl`, empty when
+unlinked. Only the authenticated admin `link_issue` action can change it. The
+local comments smoke also exercises linking, replacement, validation, and
+removal. Association is manual; issue existence, visibility, and status are not
+queried or synchronized.
+
 ## Schema and API compatibility
 
 `ensureSchema` in `functions/api/board/_util.js` creates or upgrades the schema

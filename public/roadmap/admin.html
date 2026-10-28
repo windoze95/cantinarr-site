@@ -55,8 +55,12 @@
 .mod-actions button:hover { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); }
 .mod-actions button.danger { color: var(--signal); }
 .response-editor { margin-top: 20px; border-left: 3px solid var(--gold); padding-left: 15px; }
-.response-editor label, .comment-form label { display: block; font-weight: 600; margin-bottom: 7px; }
-.response-editor .hint, .comment-form .hint { color: var(--muted); font-size: .85rem; margin: 0 0 9px; }
+.issue-editor { margin-top: 20px; }
+.issue-editor label, .response-editor label, .comment-form label { display: block; font-weight: 600; margin-bottom: 7px; }
+.issue-editor .hint, .response-editor .hint, .comment-form .hint { color: var(--muted); font-size: .85rem; margin: 0 0 9px; }
+.issue-editor input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 16px; }
+.issue-editor .mod-actions { align-items: center; }
+.issue-open { font-size: .85rem; padding: 7px 0; }
 .mod-item textarea { display: block; box-sizing: border-box; width: 100%; max-width: 100%; min-height: 100px; resize: vertical; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--ink); font: inherit; font-size: .92rem; }
 .mod-item textarea:focus-visible, .mod-item button:focus-visible, .mod-comments summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .mod-item button:disabled { opacity: .55; cursor: wait; }
@@ -187,6 +191,8 @@
       if (!draft.view) return;
       if (draft.view.response.value === draft.view.savedResponse) delete draft.response;
       else draft.response = draft.view.response.value;
+      if (draft.view.issue.value === draft.view.savedIssue) delete draft.issue;
+      else draft.issue = draft.view.issue.value;
       draft.comment = draft.view.comment.value;
       draft.open = draft.view.comments.open;
     });
@@ -202,6 +208,72 @@
 
   function addCommunication(item, f) {
     var draft = communicationDrafts[f.id] || (communicationDrafts[f.id] = {});
+    var issueForm = make('form', 'issue-editor');
+    var issueId = 'issue-' + f.id;
+    issueForm.appendChild(fieldLabel('GitHub issue (optional)', issueId));
+    var issueHint = make('p', 'hint', 'Link the issue tracking this request.');
+    issueHint.id = 'issue-hint-' + f.id;
+    issueForm.appendChild(issueHint);
+    var issueInput = make('input');
+    issueInput.id = issueId;
+    issueInput.type = 'url';
+    issueInput.maxLength = 1000;
+    issueInput.placeholder = 'https://github.com/owner/repo/issues/123';
+    issueInput.setAttribute('aria-describedby', issueHint.id);
+    issueInput.value = draft.issue !== undefined ? draft.issue : (f.githubIssueUrl || '');
+    issueForm.appendChild(issueInput);
+    var issueActions = make('div', 'mod-actions');
+    var saveIssue = make('button', null, 'Save issue');
+    saveIssue.type = 'submit';
+    var removeIssue = make('button', 'danger', 'Remove issue');
+    removeIssue.type = 'button';
+    var openIssue = make('a', 'issue-open', 'Open issue');
+    openIssue.target = '_blank';
+    openIssue.rel = 'noopener noreferrer';
+    openIssue.setAttribute('aria-label', 'Open linked GitHub issue in a new tab');
+    issueActions.appendChild(saveIssue);
+    issueActions.appendChild(removeIssue);
+    issueActions.appendChild(openIssue);
+    issueForm.appendChild(issueActions);
+    var issueStatus = threadStatus();
+    issueForm.appendChild(issueStatus);
+    item.appendChild(issueForm);
+    var savingIssue = false;
+    function updateIssueLink() {
+      removeIssue.hidden = !f.githubIssueUrl;
+      openIssue.hidden = !f.githubIssueUrl;
+      openIssue.href = f.githubIssueUrl || '';
+    }
+    updateIssueLink();
+    function saveIssueLink(value) {
+      if (savingIssue) return;
+      savingIssue = true;
+      activeCommunicationRequests += 1;
+      issueInput.disabled = saveIssue.disabled = removeIssue.disabled = true;
+      issueStatus.textContent = 'Saving…';
+      postAction({ id: f.id, action: 'link_issue', url: value }).then(function (result) {
+        if (typeof result.githubIssueUrl !== 'string') throw new Error('unconfirmed_reply');
+        f.githubIssueUrl = result.githubIssueUrl;
+        issueInput.value = f.githubIssueUrl;
+        draft.view.savedIssue = f.githubIssueUrl;
+        delete draft.issue;
+        updateIssueLink();
+        issueStatus.textContent = f.githubIssueUrl ? 'GitHub issue linked.' : 'GitHub issue removed.';
+      }).catch(function (err) {
+        issueStatus.textContent = err.message === 'invalid_issue_url'
+          ? 'Enter a GitHub issue URL, such as https://github.com/owner/repo/issues/123.'
+          : 'Could not confirm the save. Your draft is still here. Load the board to check the saved link.';
+      }).finally(function () {
+        savingIssue = false;
+        issueInput.disabled = saveIssue.disabled = removeIssue.disabled = false;
+        finishCommunicationRequest();
+      });
+    }
+    issueForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      saveIssueLink(issueInput.value);
+    });
+    removeIssue.addEventListener('click', function () { saveIssueLink(''); });
     var responseForm = make('form', 'response-editor');
     var responseId = 'response-' + f.id;
     responseForm.appendChild(fieldLabel('Maintainer response', responseId));
@@ -303,7 +375,8 @@
     var uncertainPost = Boolean(draft.uncertainPost);
     post.disabled = uncertainPost;
     if (uncertainPost) postStatus.textContent = 'Could not confirm the post. Refresh comments and check for your comment before posting again. Your draft is still here.';
-    draft.view = { response: responseInput, savedResponse: f.maintainerResponse || '', comment: commentInput, comments: comments };
+    draft.view = { response: responseInput, savedResponse: f.maintainerResponse || '',
+      issue: issueInput, savedIssue: f.githubIssueUrl || '', comment: commentInput, comments: comments };
     var cursor = null;
     var renderedIds = {};
 
@@ -472,7 +545,7 @@
   function render(features, reviewEnabled) {
     if (activeCommunicationRequests) {
       reloadAfterCommunication = true;
-      status.textContent = 'A comment or response is still sending. The board will refresh when it finishes.';
+      status.textContent = 'A change is still saving. The board will refresh when it finishes.';
       return;
     }
     captureCommunicationDrafts();
@@ -536,7 +609,7 @@
   function load() {
     if (activeCommunicationRequests) {
       reloadAfterCommunication = true;
-      status.textContent = 'A comment or response is still sending. The board will refresh when it finishes.';
+      status.textContent = 'A change is still saving. The board will refresh when it finishes.';
       return;
     }
     if (!tokenInput.value.trim()) { status.textContent = 'Enter the admin token first.'; return; }

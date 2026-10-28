@@ -58,6 +58,11 @@ const SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
   `CREATE INDEX IF NOT EXISTS comment_ip_time ON comment_log (ip_hash, created_at)`,
+  `CREATE TABLE IF NOT EXISTS feature_issue_links (
+    feature_id INTEGER PRIMARY KEY,
+    issue_url TEXT NOT NULL,
+    FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+  )`,
 ];
 
 // Public statuses are visible on /roadmap/; votable ones accept directional votes.
@@ -243,4 +248,21 @@ export function cleanText(value, maxLength) {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .trim()
     .slice(0, maxLength);
+}
+
+// Store the issue itself even when an admin pastes a comment anchor or query.
+// Never allow credentials, alternate hosts, pull requests, or executable URLs.
+export function normalizeGitHubIssueUrl(value) {
+  if (typeof value !== 'string' || value.length > 1000) return null;
+  if (!value.trim()) return '';
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== 'https:' || url.hostname !== 'github.com' ||
+        url.port || url.username || url.password) return null;
+    const path = url.pathname.match(/^\/([a-z0-9][a-z0-9-]*)\/([a-z0-9_.-]+)\/issues\/([1-9]\d*)\/?$/i);
+    if (!path) return null;
+    return `https://github.com/${path[1]}/${path[2]}/issues/${path[3]}`;
+  } catch {
+    return null;
+  }
 }

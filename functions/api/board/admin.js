@@ -2,7 +2,7 @@
 // GET lists every feature (including pending and declined); POST applies a
 // moderation action. Used by /roadmap/admin.html.
 
-import { LIMITS, cleanText, ensureSchema, isAdmin, json, readJsonBody } from './_util.js';
+import { LIMITS, cleanText, ensureSchema, isAdmin, json, normalizeGitHubIssueUrl, readJsonBody } from './_util.js';
 import { reviewPending } from './_review.js';
 
 const ACTIONS = {
@@ -37,12 +37,14 @@ export async function onRequestGet(context) {
         (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'approved') AS comment_count,
         (SELECT COUNT(*) FROM feature_comments c WHERE c.feature_id = f.id AND c.status = 'pending') AS pending_comment_count,
         response.body AS maintainer_response, response.updated_at AS response_updated_at,
+        issue.issue_url AS github_issue_url,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'up') AS upvotes,
         (SELECT COUNT(*) FROM votes v WHERE v.feature_id = f.id AND v.direction = 'down') AS downvotes,
         r.state AS review_state, r.recommendation, r.reason, r.reviewed_at
       FROM features f
       LEFT JOIN feature_reviews r ON r.feature_id = f.id
       LEFT JOIN feature_responses response ON response.feature_id = f.id
+      LEFT JOIN feature_issue_links issue ON issue.feature_id = f.id
       ORDER BY CASE f.status WHEN 'pending' THEN 0 ELSE 1 END, upvotes DESC, f.created_at DESC`
     )
     .all();
@@ -62,6 +64,7 @@ export async function onRequestGet(context) {
       pendingCommentCount: row.pending_comment_count,
       maintainerResponse: row.maintainer_response || '',
       responseUpdatedAt: row.response_updated_at || null,
+      githubIssueUrl: row.github_issue_url || '',
       review: row.review_state === 'completed' ? {
         model: 'gpt-6-luna',
         recommendation: row.recommendation,
@@ -84,7 +87,7 @@ export async function onRequestPost({ request, env }) {
   const id = body && Number.isSafeInteger(body.id) ? body.id : null;
   const action = body ? body.action : null;
   if (!id || id < 1 || (!Object.hasOwn(ACTIONS, action) &&
-      !['delete', 'comment', 'respond', 'approve_comment', 'delete_comment'].includes(action))) {
+      !['delete', 'comment', 'respond', 'approve_comment', 'delete_comment', 'link_issue'].includes(action))) {
     return json({ error: 'bad_request' }, { status: 400 });
   }
 
@@ -97,9 +100,24 @@ export async function onRequestPost({ request, env }) {
       db.prepare(`DELETE FROM feature_reviews WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM feature_comments WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM feature_responses WHERE feature_id = ?1`).bind(id),
+      db.prepare(`DELETE FROM feature_issue_links WHERE feature_id = ?1`).bind(id),
       db.prepare(`DELETE FROM features WHERE id = ?1`).bind(id),
     ]);
     return json({ ok: true, deleted: true });
+  }
+
+  if (action === 'link_issue') {
+    const url = normalizeGitHubIssueUrl(body.url);
+    if (url === null) return json({ error: 'invalid_issue_url' }, { status: 400 });
+    if (url) {
+      const result = await db.prepare(`INSERT INTO feature_issue_links (feature_id, issue_url)
+        SELECT id, ?2 FROM features WHERE id = ?1
+        ON CONFLICT (feature_id) DO UPDATE SET issue_url = excluded.issue_url`).bind(id, url).run();
+      if (!result.meta.changes) return json({ error: 'not_found' }, { status: 404 });
+    } else {
+      await db.prepare('DELETE FROM feature_issue_links WHERE feature_id = ?1').bind(id).run();
+    }
+    return json({ ok: true, githubIssueUrl: url });
   }
 
   if (action === 'comment' || action === 'respond') {
