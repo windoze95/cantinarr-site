@@ -195,6 +195,12 @@ their existing styles. New
 stylesheet and script filenames must change before a later deployed edit,
 because `/static/*` responses are cached immutably.
 
+Homepage and roadmap header/footer logos use the transparent Play Sun lockup.
+Check that no charcoal tile appears behind the symbol, the yellow i-dot remains
+visible, and the 40px header / 48px footer artwork keeps its natural proportions
+at phone and desktop widths. Logo links retain the Cantinarr accessible name and
+visible keyboard focus.
+
 ## Native apps and push preview
 
 The opening must name the native iPhone/iPad/Android apps and show their two
