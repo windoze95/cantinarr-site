@@ -9,3 +9,5 @@ Navigation and footers use `public/static/lockup-transparent-v1.svg`, the kit's 
 The social card keeps “Discover · Request · Manage · Repair” as its primary message, with “How you doing, you old pirate?” in smaller cream lettering below. The quote replaces the duplicate site URL. Keep older hashed PNGs available for cached link previews.
 
 The 48px `public/static/favicon-transparent-v1.png` uses the optimized small-size Play Sun geometry from the core repository's `branding/play-sun-small.svg`, exported without its charcoal tile. Its versioned URL avoids the immutable cache for the previous favicon; touch and launcher icons keep their existing artwork.
+
+The 404 page uses `public/static/symbol-transparent-v1.svg`, an unchanged copy of the same kit's `deliverables/play-sun/svg/symbol-dark.svg` from commit `010eebb`. Its image styling preserves the free symbol's outline without rounded clipping.
