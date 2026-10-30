@@ -11,3 +11,5 @@ The social card keeps “Discover · Request · Manage · Repair” as its prima
 The 48px `public/static/favicon-transparent-v1.png` uses the optimized small-size Play Sun geometry from the core repository's `branding/play-sun-small.svg`, exported without its charcoal tile. Its versioned URL avoids the immutable cache for the previous favicon; touch and launcher icons keep their existing artwork.
 
 The 404 page uses `public/static/symbol-transparent-v1.svg`, an unchanged copy of the same kit's `deliverables/play-sun/svg/symbol-dark.svg` from commit `010eebb`. Its image styling preserves the free symbol's outline without rounded clipping.
+
+`public/static/symbol-transparent-v1.png` provides the same symbol for deployment catalogs that require PNG. The core `scripts/generate_branding.py --web-only --site /path/to/cantinarr-site` exporter renders the canonical SVG at 1024px wide and centers it on a transparent 1024 × 1024 RGBA canvas, preserving its proportions with five transparent pixels above and below. Keep the versioned filename stable once published; use a new version for changed artwork.
