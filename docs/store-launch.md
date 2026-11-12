@@ -1,10 +1,10 @@
 # Store launch links
 
-Cantinarr v1 launched on October 8, 2026. Android's `released` flag in
-[`store-links.json`](store-links.json) is `true`; iOS remains `false` while its
-App Store submission is waiting for review. The homepage says iOS is in App
-Store review and keeps the TestFlight beta as its available download channel.
-The flags control marketing links, not store releases or tester enrollment.
+Both platforms now have production download links. Android launched on October 8,
+2026; iOS reached the App Store on November 12. Both `released` flags in
+[`store-links.json`](store-links.json) are `true`. The homepage and text-only
+page use the public stores rather than beta enrollment. The flags control
+marketing links, not store releases or tester enrollment.
 
 ## Launch evidence
 
@@ -18,9 +18,11 @@ The flags control marketing links, not store releases or tester enrollment.
   on Google Play**, covering **178 countries / regions**. The public listing
   exposes Install without a beta opt-in. A fresh non-tester device install was
   not performed by the agent.
-- App Store Connect still reports **1.0.0 (448), Waiting for Review**. Its
-  existing submission, reviewer demo, and manual release selection are preserved.
-  There is no claim of public App Store availability.
+- The public [US App Store product page](https://apps.apple.com/us/app/cantinarr/id6744379934)
+  showed **Version 1.1.0**, released November 12, 2026 at 20:17:40 UTC, when
+  checked that day. Apple's lookup API still returned 1.0.0 at this check;
+  the product page supplied the newer release evidence. A fresh non-tester
+  device install and every regional storefront were not independently tested.
 - Julian authorized stable publication, Android production publication, and
   merging this website PR after green checks without another approval.
 
@@ -32,8 +34,8 @@ The flags control marketing links, not store releases or tester enrollment.
 | Android | <https://play.google.com/store/apps/details?id=codes.julian.cantinarr> | [Android publishing configuration](https://github.com/windoze95/cantinarr/blob/ea19d63ec849108d35fec26d5659ca7901f81580/app/android/fastlane/Fastfile#L3) and the Google Play listing identify `codes.julian.cantinarr` |
 
 These are verified app identities. Android production availability is confirmed
-by the production console and public listing above. The App Store destination
-is retained for the future approved iOS release and is not an active download link.
+by the production console and public listing above. The App Store product page also confirms the released iOS app; its destination
+is now an active download link.
 
 The intentional opt-in destinations remain:
 
@@ -104,6 +106,7 @@ consumes the core README, so that is an indirect surface to recheck later.
 Operational beta workflows, release documentation, and hidden settings-search
 aliases remain valid for ongoing testing and should not be blindly replaced.
 
-Android acquisition now points to production throughout the homepage and legacy
-dialog. iOS remains in App Store review and uses its existing TestFlight link.
+Android acquisition points to production throughout the homepage and legacy
+dialog. iOS acquisition now points to the public App Store on the homepage
+and text-only page.
 Tester enrollment URLs remain only in intentional program documentation.

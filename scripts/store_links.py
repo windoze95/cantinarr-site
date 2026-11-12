@@ -71,9 +71,9 @@ def render(source: str, config: dict) -> str:
             + '        </a>\n'
         )
     if ios_live and android_live:
-        note = "Android is available on Google Play. Want early iPhone updates? Join the optional " + link(IOS_BETA, "iPhone beta") + "."
+        note = "Available on the App Store for iPhone and iPad and on Google Play for Android."
     elif ios_live:
-        note = "Want early iPhone updates? Join the optional " + link(IOS_BETA, "iPhone beta") + "."
+        note = "Available on the App Store for iPhone and iPad."
     elif android_live:
         note = "Android is available on Google Play."
     else:
