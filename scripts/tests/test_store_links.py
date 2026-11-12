@@ -51,8 +51,8 @@ class StoreLinkTests(unittest.TestCase):
                     else:
                         self.assertIn(links.ANDROID_BETA, dialog)
                     if ios_live:
-                        self.assertIn(links.IOS_BETA, hero)
-                        self.assertIn("optional", hero)
+                        self.assertNotIn(links.IOS_BETA, output)
+                        self.assertNotIn("iPhone beta", hero)
                     note = re.search(r'<p class="stores-note rise d4">(.*?)</p>', hero).group(1)
                     if ios_live and not android_live:
                         self.assertNotIn(links.ANDROID_BETA, note)
