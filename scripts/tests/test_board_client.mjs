@@ -89,7 +89,7 @@ test('suggestion submits optional contact separately and clears it only after su
   const payload = JSON.parse(p.calls.at(-1).options.body);
   assert.equal(payload.contactEmail, '');
   assert.equal(payload.contactDiscord, '');
-  assert.match(p.elements['form-status'].textContent, /review queue/);
+  assert.match(p.elements['form-status'].textContent, /waiting for review/);
 });
 
 test('client serializes repeated taps, sends desired states, switches and removes using server counts', async () => {
@@ -149,7 +149,7 @@ test('rate limit and malformed success reconcile; unavailable refresh keeps item
   const p = await page(); const [up, down] = p.buttons();
   p.setSend(async () => new Response('{"error":"rate_limited"}', { status: 429 }));
   up.events.click(); await tick();
-  assert.match(p.elements['board-status'].textContent, /lot of votes/);
+  assert.match(p.elements['board-status'].textContent, /hourly vote limit/);
   assert.equal(p.count(0), '7'); assert.ok(!up.disabled && !down.disabled);
   p.setSend(async () => new Response('{}'));
   up.events.click(); await tick(); assert.equal(p.count(0), '7');

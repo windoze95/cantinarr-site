@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roadmap &amp; feature requests · Cantinarr</title>
-<meta name="description" content="Request Cantinarr features and vote on what ships next. No account needed.">
+<meta name="description" content="Suggest a feature, vote on ideas, and check their progress. No account needed.">
 <link rel="canonical" href="https://cantinarr.com/roadmap/">
 <meta property="og:site_name" content="Cantinarr">
 <meta property="og:title" content="Cantinarr roadmap and feature requests">
-<meta property="og:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
+<meta property="og:description" content="Suggest a feature, vote on ideas, and check their progress. No account needed.">
 <meta property="og:url" content="https://cantinarr.com/roadmap/">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://cantinarr.com/static/og-e2459eaa.png">
@@ -17,7 +17,7 @@
 <meta property="og:image:alt" content="Cantinarr: discover, request, manage, and repair. How you doing, you old pirate?">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Cantinarr roadmap and feature requests">
-<meta name="twitter:description" content="Request Cantinarr features and vote on what ships next. No account needed.">
+<meta name="twitter:description" content="Suggest a feature, vote on ideas, and check their progress. No account needed.">
 <meta name="twitter:image" content="https://cantinarr.com/static/og-e2459eaa.png">
 <meta name="twitter:image:alt" content="Cantinarr: discover, request, manage, and repair. How you doing, you old pirate?">
 <meta name="theme-color" content="#0C0805">
@@ -123,7 +123,7 @@
         <h1>Roadmap</h1>
       </div>
       <div class="board-lede">
-        <p>Find an idea, see its progress, and help shape what’s next.</p>
+        <p>Suggest a feature, vote on ideas, and check their progress.</p>
         <a class="board-jump" href="#suggest">Suggest a feature</a>
       </div>
     </div>
@@ -134,7 +134,7 @@
       <div id="board-controls"></div>
       <div id="board-status" role="status">Loading the board…</div>
       <div id="board-list"></div>
-      <p class="board-note">Choose one vote per idea. Tap the other direction to switch, or tap your selected vote to remove it. An anonymous cookie remembers your votes. No account, no tracking.</p>
+      <p class="board-note">Choose one vote per idea. Tap the other direction to switch, or tap your selected vote to remove it. You don’t need an account. A cookie remembers your votes.</p>
       <noscript><p class="board-note">The board needs JavaScript to load requests and count votes.</p></noscript>
     </section>
 
@@ -290,7 +290,7 @@
               votable = fresh.status === 'open' || fresh.status === 'planned';
             } else { votable = false; }
             setBoardStatus(err && err.code === 'rate_limited'
-              ? 'Easy there, that’s a lot of votes for one hour. Try again later.'
+              ? 'You’ve reached the hourly vote limit. Try again later.'
               : 'Couldn’t confirm that vote. The counts have been refreshed. Please check your selection.');
           }).catch(function () {
             // Keep this item locked until a reload can confirm its state.
@@ -548,7 +548,7 @@
       var payload = { id: feature.id, body: input.value, website: website.value };
       if (boardSiteKey) {
         if (view.widgetId === null || !turnstileApiReady) {
-          status.textContent = 'Give the bot check a second to finish, then submit again.';
+          status.textContent = 'Wait for the bot check to finish, then submit again.';
           return;
         }
         payload.turnstile = window.turnstile.getResponse(view.widgetId);
@@ -568,12 +568,12 @@
         if (result.ok !== true || result.queued !== true) throw new Error('invalid_comment_reply');
         input.value = draft.body = '';
         website.value = draft.website = '';
-        status.textContent = 'Got it. Your comment is waiting for maintainer approval.';
+        status.textContent = 'Your comment is waiting for maintainer approval.';
         status.className = 'comment-status ok';
       }).catch(function (err) {
         var messages = {
           invalid_comment: 'Write a comment of up to 2,000 characters.',
-          rate_limited: 'That’s a lot of comments for one day. Try again tomorrow.',
+          rate_limited: 'You’ve reached the daily comment limit. Try again tomorrow.',
           turnstile_failed: 'The bot check didn’t pass. Complete it again and retry.',
           not_found: 'This request is no longer available. Reload the board.',
           board_unconfigured: 'The board is still being set up. Check back soon.'
@@ -664,7 +664,7 @@
     if (turnstileWidgetId !== null) {
       payload.turnstile = window.turnstile.getResponse(turnstileWidgetId);
       if (!payload.turnstile) {
-        setFormStatus('Give the bot check a second to finish, then submit again.', 'err');
+        setFormStatus('Wait for the bot check to finish, then submit again.', 'err');
         return;
       }
     }
@@ -674,17 +674,17 @@
     postJson('/api/board/submit', payload).then(function () {
       form.reset();
       if (turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
-      setFormStatus('Got it. Your idea is in the review queue.', 'ok');
+      setFormStatus('Your idea is waiting for review.', 'ok');
     }).catch(function (err) {
       var messages = {
-        invalid_title: 'Give it a longer title so people know what they’re voting for.',
+        invalid_title: 'Use a title between 4 and 120 characters.',
         invalid_contact_email: 'Enter a valid email address, or leave it blank.',
         invalid_contact_discord: 'Keep your Discord username to 100 characters on one line, or leave it blank.',
-        rate_limited: 'That’s a lot of ideas for one day. Save the rest for tomorrow.',
+        rate_limited: 'You’ve reached the daily suggestion limit. Try again tomorrow.',
         turnstile_failed: 'The bot check didn’t pass. Reload and try again.',
         board_unconfigured: 'The board is still being set up. Check back soon.'
       };
-      setFormStatus(messages[err.code] || 'Something hiccuped. Try again in a moment.', 'err');
+      setFormStatus(messages[err.code] || 'Couldn’t confirm your idea was received. It may still be waiting for review. Don’t submit it again yet.', 'err');
     }).finally(function () { button.disabled = false; });
   });
 
